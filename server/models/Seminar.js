@@ -8,6 +8,7 @@ const seminarSchema = new mongoose.Schema({
   venue: { type: String, required: true },
   description: { type: String },
   attendees: { type: Number, default: 0 },
+  certificate: { type: String }, // Certificate file path
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

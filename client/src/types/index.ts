@@ -33,6 +33,7 @@ export interface FDPAttended {
   venue: string;
   reportUpload?: string;
   proofDoc?: string;
+  certificate?: string;
   status: 'pending' | 'approved' | 'rejected';
 }
 
@@ -72,6 +73,7 @@ export interface JointTeaching {
   courseCode: string;
   facultyInvolved: string;
   syllabusDoc?: string;
+  certificate?: string;
   hours: number;
 }
 
@@ -84,6 +86,7 @@ export interface Seminar {
   venue: string;
   description: string;
   attendees?: number;
+  certificate?: string;
 }
 
 export interface Notification {
@@ -104,4 +107,62 @@ export interface UpcomingEvent {
   venue: string;
   description: string;
   registrationLink?: string;
+}
+
+export interface FDPReimbursement {
+  id: string;
+  facultyId: string;
+  fdpId: string;
+  fdpTitle: string;
+  amount: number;
+  currency: string;
+  expenseType: 'travel' | 'accommodation' | 'registration' | 'food' | 'other';
+  description?: string;
+  receiptDocument?: string;
+  bankDetails?: {
+    accountNumber: string;
+    ifscCode: string;
+    bankName: string;
+    accountHolderName: string;
+  };
+  status: 'pending' | 'approved' | 'rejected' | 'processed';
+  submittedDate?: string;
+  reviewComments?: string;
+}
+
+export interface Achievement {
+  id: string;
+  facultyId: string;
+  title: string;
+  description: string;
+  category: 'award' | 'publication' | 'research' | 'patent' | 'recognition' | 'certification' | 'other';
+  issuer?: string;
+  date: string;
+  certificate?: string;
+  supportingDocument?: string;
+  link?: string;
+  status: 'pending' | 'verified' | 'rejected';
+}
+
+export interface Internship {
+  id: string;
+  facultyId: string;
+  studentName: string;
+  studentEmail?: string;
+  studentRollNo?: string;
+  companyName: string;
+  companyAddress?: string;
+  position: string;
+  startDate: string;
+  endDate: string;
+  duration?: number;
+  stipend?: number;
+  description?: string;
+  skillsGained?: string[];
+  projectTitle?: string;
+  supervisorName?: string;
+  status: 'ongoing' | 'completed' | 'terminated';
+  certificate?: string;
+  report?: string;
+  feedback?: string;
 }

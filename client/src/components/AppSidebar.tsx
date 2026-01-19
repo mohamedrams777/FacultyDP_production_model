@@ -12,6 +12,10 @@ import {
   UserPlus,
   UsersRound,
   ChevronDown,
+  DollarSign,
+  Trophy,
+  Briefcase,
+  FileCheck,
 } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
@@ -56,6 +60,9 @@ export const AppSidebar = () => {
       ]
     },
     { title: 'Seminars', url: '/faculty/seminars', icon: GraduationCap },
+    { title: 'Reimbursements', url: '/faculty/reimbursements', icon: DollarSign },
+    { title: 'Achievements', url: '/faculty/achievements', icon: Trophy },
+    { title: 'Internships', url: '/faculty/internships', icon: Briefcase },
     { title: 'Upcoming Events', url: '/faculty/events', icon: Calendar },
     { title: 'Notifications', url: '/faculty/notifications', icon: Bell },
   ];
@@ -81,6 +88,10 @@ export const AppSidebar = () => {
         { title: 'Joint Teaching', url: '/admin/joint-teaching', icon: UsersRound },
       ]
     },
+    { title: 'Reimbursements', url: '/admin/reimbursements', icon: DollarSign },
+    { title: 'Achievements', url: '/admin/achievements', icon: Trophy },
+    { title: 'Internships', url: '/admin/internships', icon: Briefcase },
+    { title: 'Audit & Reports', url: '/admin/audit', icon: FileCheck },
     { title: 'Notifications', url: '/admin/notifications', icon: Bell },
     { title: 'Settings', url: '/admin/settings', icon: Settings },
   ];
@@ -90,6 +101,7 @@ export const AppSidebar = () => {
     { title: 'Faculty Overview', url: '/hod/faculty', icon: Users },
     { title: 'Analytics', url: '/hod/analytics', icon: BarChart3 },
     { title: 'Records', url: '/hod/records', icon: FileText },
+    { title: 'Audit & Reports', url: '/hod/audit', icon: FileCheck },
     { title: 'Notifications', url: '/hod/notifications', icon: Bell },
   ];
 

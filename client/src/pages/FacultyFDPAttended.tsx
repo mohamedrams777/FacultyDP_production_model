@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, FileText, Download, Eye } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,8 @@ const FacultyFDPAttended = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<FDPAttended | null>(null);
+  const [mode, setMode] = useState<'online' | 'offline'>('online');
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
   useEffect(() => {
     loadRecords();
@@ -37,6 +39,7 @@ const FacultyFDPAttended = () => {
         venue: item.venue,
         reportUpload: item.reportUpload,
         proofDoc: item.proofDoc,
+        certificate: item.certificate,
         status: item.status || 'pending',
       })));
     } catch (error) {
@@ -50,13 +53,18 @@ const FacultyFDPAttended = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const certificateFile = (formData.get('certificate') as File);
     
-    const fdpData = {
+    const fdpData: any = {
       title: formData.get('title') as string,
-      mode: formData.get('mode') as 'online' | 'offline',
+      mode: mode,
       duration: formData.get('duration') as string,
       venue: formData.get('venue') as string,
     };
+
+    if (certificateFile && certificateFile.size > 0) {
+      fdpData.certificate = certificateFile;
+    }
 
     try {
       if (editingRecord) {
@@ -69,9 +77,10 @@ const FacultyFDPAttended = () => {
       await loadRecords();
       setIsDialogOpen(false);
       setEditingRecord(null);
-    } catch (error) {
+      setMode('online');
+    } catch (error: any) {
       console.error('Failed to save FDP:', error);
-      toast({ title: 'Failed to save FDP', variant: 'destructive' });
+      toast({ title: error.message || 'Failed to save FDP', variant: 'destructive' });
     }
   };
 
@@ -97,7 +106,10 @@ const FacultyFDPAttended = () => {
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={() => setEditingRecord(null)}>
+            <Button onClick={() => {
+              setEditingRecord(null);
+              setMode('online');
+            }}>
               <Plus className="mr-2 h-4 w-4" />
               Add FDP
             </Button>
@@ -114,7 +126,7 @@ const FacultyFDPAttended = () => {
               </div>
               <div>
                 <Label htmlFor="mode">Mode</Label>
-                <Select name="mode" defaultValue={editingRecord?.mode || 'online'}>
+                <Select value={editingRecord?.mode || mode} onValueChange={(value) => setMode(value as 'online' | 'offline')}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -131,6 +143,21 @@ const FacultyFDPAttended = () => {
               <div>
                 <Label htmlFor="venue">Venue</Label>
                 <Input id="venue" name="venue" defaultValue={editingRecord?.venue} required />
+              </div>
+              <div>
+                <Label htmlFor="certificate">Certificate (PDF, JPG, PNG - Max 10MB)</Label>
+                <Input
+                  id="certificate"
+                  name="certificate"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="cursor-pointer"
+                />
+                {editingRecord?.certificate && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Current certificate: {editingRecord.certificate.split('/').pop()}
+                  </p>
+                )}
               </div>
               <Button type="submit" className="w-full">
                 {editingRecord ? 'Update' : 'Add'} FDP
@@ -176,8 +203,19 @@ const FacultyFDPAttended = () => {
                   {fdp.proofDoc && (
                     <div className="flex items-center gap-1">
                       <FileText className="h-4 w-4" />
-                      Certificate
+                      Proof Doc
                     </div>
+                  )}
+                  {fdp.certificate && (
+                    <a
+                      href={`${API_BASE_URL.replace('/api', '')}${fdp.certificate}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-primary hover:underline"
+                    >
+                      <Eye className="h-4 w-4" />
+                      View Certificate
+                    </a>
                   )}
                 </div>
                 <div className="flex gap-2">
@@ -186,6 +224,7 @@ const FacultyFDPAttended = () => {
                     variant="outline"
                     onClick={() => {
                       setEditingRecord(fdp);
+                      setMode(fdp.mode);
                       setIsDialogOpen(true);
                     }}
                   >

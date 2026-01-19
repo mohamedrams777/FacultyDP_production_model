@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, FileText, Calendar, MapPin } from 'lucide-react';
+import { Plus, Edit, Trash2, FileText, Calendar, MapPin, Eye } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ const FacultySeminars = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSeminar, setEditingSeminar] = useState<Seminar | null>(null);
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
   useEffect(() => {
     loadSeminars();
@@ -36,6 +37,7 @@ const FacultySeminars = () => {
         venue: item.venue,
         description: item.description || '',
         attendees: item.attendees || 0,
+        certificate: item.certificate,
       })));
     } catch (error) {
       console.error('Failed to load seminars:', error);
@@ -48,8 +50,9 @@ const FacultySeminars = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const certificateFile = (formData.get('certificate') as File);
     
-    const data = {
+    const data: any = {
       title: formData.get('title') as string,
       topic: formData.get('topic') as string,
       date: formData.get('date') as string,
@@ -57,6 +60,10 @@ const FacultySeminars = () => {
       description: formData.get('description') as string || '',
       attendees: parseInt(formData.get('attendees') as string) || 0,
     };
+
+    if (certificateFile && certificateFile.size > 0) {
+      data.certificate = certificateFile;
+    }
 
     try {
       if (editingSeminar) {
@@ -69,9 +76,9 @@ const FacultySeminars = () => {
       await loadSeminars();
       setIsDialogOpen(false);
       setEditingSeminar(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save seminar:', error);
-      toast.error('Failed to save seminar');
+      toast.error(error.message || 'Failed to save seminar');
     }
   };
 
@@ -185,6 +192,21 @@ const FacultySeminars = () => {
                       rows={3}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="certificate">Certificate (PDF, JPG, PNG - Max 10MB)</Label>
+                    <Input
+                      id="certificate"
+                      name="certificate"
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      className="cursor-pointer"
+                    />
+                    {editingSeminar?.certificate && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Current certificate: {editingSeminar.certificate.split('/').pop()}
+                      </p>
+                    )}
+                  </div>
                   <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                       Cancel
@@ -244,6 +266,19 @@ const FacultySeminars = () => {
                     {seminar.attendees > 0 && (
                       <div className="pt-2">
                         <Badge variant="outline">{seminar.attendees} attendees</Badge>
+                      </div>
+                    )}
+                    {seminar.certificate && (
+                      <div className="pt-2">
+                        <a
+                          href={`${API_BASE_URL.replace('/api', '')}${seminar.certificate}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-sm text-primary hover:underline"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View Certificate
+                        </a>
                       </div>
                     )}
                   </CardContent>

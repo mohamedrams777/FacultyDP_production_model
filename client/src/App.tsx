@@ -32,6 +32,13 @@ import HODFaculty from "./pages/HODFaculty";
 import HODAnalytics from "./pages/HODAnalytics";
 import HODRecords from "./pages/HODRecords";
 import HODNotifications from "./pages/HODNotifications";
+import FacultyFDPReimbursement from "./pages/FacultyFDPReimbursement";
+import FacultyAchievements from "./pages/FacultyAchievements";
+import FacultyInternships from "./pages/FacultyInternships";
+import AdminReimbursements from "./pages/AdminReimbursements";
+import AdminAchievements from "./pages/AdminAchievements";
+import AdminInternships from "./pages/AdminInternships";
+import AuditReports from "./pages/AuditReports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -129,6 +136,30 @@ const App = () => (
                 }
               />
               <Route
+                path="/faculty/reimbursements"
+                element={
+                  <ProtectedRoute allowedRoles={['faculty']}>
+                    <FacultyFDPReimbursement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/faculty/achievements"
+                element={
+                  <ProtectedRoute allowedRoles={['faculty']}>
+                    <FacultyAchievements />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/faculty/internships"
+                element={
+                  <ProtectedRoute allowedRoles={['faculty']}>
+                    <FacultyInternships />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/admin"
                 element={
                   <ProtectedRoute allowedRoles={['admin']}>
@@ -209,6 +240,38 @@ const App = () => (
                 }
               />
               <Route
+                path="/admin/reimbursements"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminReimbursements />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/achievements"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminAchievements />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/internships"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminInternships />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/audit"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AuditReports />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/hod"
                 element={
                   <ProtectedRoute allowedRoles={['hod']}>
@@ -245,6 +308,14 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRoles={['hod']}>
                     <HODNotifications />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hod/audit"
+                element={
+                  <ProtectedRoute allowedRoles={['hod']}>
+                    <AuditReports />
                   </ProtectedRoute>
                 }
               />

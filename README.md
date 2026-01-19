@@ -1,239 +1,224 @@
 # Faculty FDP Management System
 
-A comprehensive web application for managing faculty portfolios, tracking Faculty Development Programs (FDPs), seminars, and academic activities across different user roles (Admin, Faculty, HOD).
+A comprehensive web application for managing Faculty Development Programs (FDP), seminars, achievements, reimbursements, internships, and more.
 
-## Prerequisites
+## 🚀 Features
 
-Before running the project, make sure you have the following installed:
+- **User Management**: Registration with role-based access (Admin, Faculty, HOD)
+- **FDP Management**: Track attended and organized FDPs with certificate uploads
+- **Reimbursements**: Submit and manage FDP expense reimbursements
+- **Achievements**: Record and verify faculty achievements
+- **Internships**: Track student internships supervised by faculty
+- **Seminars & Events**: Manage seminars and upcoming events
+- **Teaching Records**: ABL, Joint Teaching, Adjunct Faculty
+- **Audit & Reports**: Comprehensive reporting with PDF/Excel export
+- **Notifications**: Real-time notification system
 
-- **Node.js** (v16 or higher) - [Download](https://nodejs.org/)
-- **MongoDB** (v4.4 or higher) - [Download](https://www.mongodb.com/try/download/community)
-- **npm** (comes with Node.js) or **yarn**
+## 📋 Prerequisites
 
-## Project Structure
+- Node.js (v16 or higher)
+- MongoDB Atlas account (Cloud database - **Required**)
+- npm or yarn package manager
 
-```
-Facultyfdp/
-├── client/          # React frontend application
-├── server/          # Express.js backend API
-└── README.md        # This file
-```
+## 🗄️ Database Setup (MongoDB Atlas - Cloud)
 
-## Setup Instructions
+**This application uses MongoDB Atlas (cloud database) - no local MongoDB installation required!**
 
-### 1. Install MongoDB
+### Quick Setup:
 
-1. Download and install MongoDB Community Edition from [mongodb.com](https://www.mongodb.com/try/download/community)
-2. Start MongoDB service:
-   - **Windows**: MongoDB should start automatically as a service, or run `mongod` from command prompt
-   - **Mac/Linux**: Run `mongod` or `brew services start mongodb-community` (if installed via Homebrew)
+1. **Create MongoDB Atlas Account**
+   - Go to https://www.mongodb.com/cloud/atlas
+   - Create a free account
+   - Create a free cluster (M0 tier)
 
-### 2. Setup Server (Backend)
+2. **Get Connection String**
+   - In Atlas, go to Database → Connect
+   - Choose "Connect your application"
+   - Copy the connection string
 
-1. Navigate to the server directory:
+3. **Configure Environment**
    ```bash
    cd server
+   # Create .env file
+   # Add your MongoDB Atlas connection string:
+   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/FDP
    ```
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+4. **Whitelist IP Address**
+   - In Atlas → Network Access
+   - Add your IP address (or "Allow Access from Anywhere" for development)
 
-3. The server is configured to connect to MongoDB at `mongodb://127.0.0.1:27017/FDP`
-   - Make sure MongoDB is running before starting the server
-   - The database will be created automatically on first connection
+📖 **Detailed setup instructions**: See [MONGODB_ATLAS_SETUP.md](./MONGODB_ATLAS_SETUP.md)
 
-4. Start the server:
-   ```bash
-   npm start
-   ```
+## ⚙️ Installation
 
-   The server will run on **http://localhost:3001**
-
-   You should see:
-   ```
-   Connected to MongoDB
-   Server is running on port 3001
-   ```
-
-### 3. Setup Client (Frontend)
-
-1. Open a **new terminal window** (keep the server running)
-
-2. Navigate to the client directory:
-   ```bash
-   cd client
-   ```
-
-3. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-   The client will run on **http://localhost:5173** (or another port if 5173 is busy)
-
-## Running the Application
-
-### Development Mode
-
-1. **Terminal 1** - Start MongoDB (if not running as a service):
-   ```bash
-   mongod
-   ```
-
-2. **Terminal 2** - Start the backend server:
-   ```bash
-   cd server
-   npm start
-   ```
-
-3. **Terminal 3** - Start the frontend client:
-   ```bash
-   cd client
-   npm run dev
-   ```
-
-4. Open your browser and navigate to:
-   ```
-   http://localhost:5173
-   ```
-
-## API Endpoints
-
-The backend API is available at `http://localhost:3001/api`
-
-### Authentication
-- `POST /api/auth/login` - User login
-- `POST /api/auth/register` - User registration
-- `GET /api/auth/me` - Get current user
-
-### Faculty Routes (`/api/faculty`)
-- FDP Attended: `GET`, `POST`, `PUT`, `DELETE /api/faculty/fdp/attended`
-- FDP Organized: `GET`, `POST`, `PUT`, `DELETE /api/faculty/fdp/organized`
-- Seminars: `GET`, `POST`, `PUT`, `DELETE /api/faculty/seminars`
-- ABL: `GET`, `POST`, `PUT`, `DELETE /api/faculty/abl`
-- Joint Teaching: `GET`, `POST`, `PUT`, `DELETE /api/faculty/joint-teaching`
-- Adjunct Faculty: `GET`, `POST`, `PUT`, `DELETE /api/faculty/adjunct`
-- Notifications: `GET /api/faculty/notifications`
-- Dashboard: `GET /api/faculty/dashboard`
-
-### Admin Routes (`/api/admin`)
-- Faculty management
-- FDP approval/rejection
-- Events management
-- Dashboard stats
-
-### HOD Routes (`/api/hod`)
-- Department faculty management
-- Analytics and reports
-- Dashboard stats
-
-### Events (`/api/events`)
-- `GET /api/events` - Get upcoming events
-- `GET /api/events/all` - Get all events
-
-## Default Test Users
-
-You can create test users by registering through the API or directly in MongoDB. Example:
-
-```javascript
-// Register via API
-POST http://localhost:3001/api/auth/register
-{
-  "name": "Admin User",
-  "email": "admin@university.edu",
-  "password": "admin123",
-  "role": "admin"
-}
-```
-
-## Troubleshooting
-
-### MongoDB Connection Issues
-
-- **Error: "MongoDB connection error"**
-  - Make sure MongoDB is installed and running
-  - Check if MongoDB is running on port 27017
-  - Try restarting MongoDB service
-
-### Port Already in Use
-
-- **Error: "Port 3001 already in use"**
-  - Change the port in `server/index.js` or set `PORT` environment variable
-  - Kill the process using the port:
-    - Windows: `netstat -ano | findstr :3001` then `taskkill /PID <PID> /F`
-    - Mac/Linux: `lsof -ti:3001 | xargs kill`
-
-### Dependencies Installation Issues
-
-- **Error during `npm install`**
-  - Delete `node_modules` folder and `package-lock.json`
-  - Run `npm install` again
-  - Make sure you're using Node.js v16 or higher
-
-### CORS Issues
-
-- If you encounter CORS errors, make sure:
-  - The server is running on port 3001
-  - The client is configured to call the correct API URL
-  - CORS is enabled in `server/index.js` (already configured)
-
-## Production Build
-
-### Build Client for Production
-
+### 1. Clone the Repository
 ```bash
-cd client
-npm run build
+git clone <repository-url>
+cd FacultyFDP
 ```
 
-The built files will be in `client/dist/`
-
-### Run Server in Production
-
+### 2. Install Server Dependencies
 ```bash
 cd server
-# Remove nodemon and use node directly
-node index.js
+npm install
 ```
 
-## Environment Variables
-
-You can create a `.env` file in the server directory to customize:
-
+### 3. Configure Environment Variables
+Create `server/.env` file:
 ```env
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/FDP
 PORT=3001
-MONGODB_URI=mongodb://127.0.0.1:27017/FDP
+NODE_ENV=development
+
+# Optional: Email configuration for registration notifications
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
 ```
 
-## Technologies Used
+### 4. Install Client Dependencies
+```bash
+cd ../client
+npm install
+```
 
-### Frontend
-- React 18
-- TypeScript
+## 🚀 Running the Application
+
+### Start Server
+```bash
+cd server
+npm start
+```
+Server will run on http://localhost:3001
+
+### Start Client (in a new terminal)
+```bash
+cd client
+npm run dev
+```
+Client will run on http://localhost:5173 (or port shown in terminal)
+
+## 👤 Default Access
+
+### Registration Flow:
+1. New users can register from the login page
+2. Select role: Faculty, Admin, or HOD
+3. Fill in department and designation
+4. After registration, login to access dashboard
+
+### Admin Password Requirements:
+- Minimum 8 characters
+- At least one lowercase letter
+- At least one uppercase letter
+- At least one number
+- At least one symbol
+
+## 📁 Project Structure
+
+```
+FacultyFDP/
+├── server/              # Backend (Node.js/Express)
+│   ├── models/         # MongoDB models
+│   ├── routes/         # API routes
+│   ├── middleware/     # Upload middleware
+│   └── uploads/        # Uploaded files
+│
+└── client/             # Frontend (React/TypeScript)
+    ├── src/
+    │   ├── pages/      # Page components
+    │   ├── components/ # Reusable components
+    │   ├── lib/        # API client
+    │   └── types/      # TypeScript types
+```
+
+## 🔐 Roles & Permissions
+
+- **Faculty**: Manage own records, submit requests
+- **Admin**: Full access, approve/reject requests, generate reports
+- **HOD**: Department-level access, view reports for their department
+
+## 📊 Available Modules
+
+- FDP Attended/Organized
+- Seminars
+- Activity-Based Learning (ABL)
+- Joint Teaching
+- Adjunct Faculty
+- **FDP Reimbursements** ⭐
+- **Achievements** ⭐
+- **Internship Activities** ⭐
+- **Audit & Reports** ⭐
+
+## 📄 Report Generation
+
+The Audit & Reports section allows:
+- Comprehensive data aggregation
+- Date range filtering
+- Department filtering
+- PDF export with formatted tables
+- Excel export with multiple sheets
+- Statistics dashboard
+
+## 🛠️ Tech Stack
+
+**Backend:**
+- Node.js + Express
+- MongoDB Atlas (Cloud)
+- Multer (File uploads)
+- Nodemailer (Email notifications)
+- bcryptjs (Password hashing)
+
+**Frontend:**
+- React + TypeScript
 - Vite
-- React Router
-- TanStack Query
 - Tailwind CSS
-- Radix UI
+- shadcn/ui components
+- jsPDF (PDF generation)
+- XLSX (Excel generation)
 
-### Backend
-- Node.js
-- Express.js
-- MongoDB
-- Mongoose
-- bcryptjs
+## 📝 Notes
 
-## License
+- All file uploads are limited to 10MB
+- Supported file types: PDF, JPG, JPEG, PNG
+- Certificates and documents are viewable by all authorized users
+- Database automatically creates collections as needed
 
-ISC
+## 🆘 Troubleshooting
 
-## Author
+### Server won't start
+- Check MongoDB Atlas connection string in `.env` file
+- Verify IP is whitelisted in Atlas
+- Ensure cluster is running (not paused)
 
-Abi
+### Database connection fails
+- Verify connection string format
+- Check username/password are correct
+- Ensure database name `/FDP` is included
+- See [MONGODB_ATLAS_SETUP.md](./MONGODB_ATLAS_SETUP.md) for detailed help
+
+## 📚 Documentation
+
+- [MongoDB Atlas Setup Guide](./MONGODB_ATLAS_SETUP.md) - Detailed cloud database setup
+- [API Testing Guide](./server/API_TESTING_GUIDE.md) - API endpoint documentation
+- [Troubleshooting Guide](./server/TROUBLESHOOTING.md) - Common issues and solutions
+
+## ✅ All Features Implemented
+
+- ✅ User registration with role selection
+- ✅ Strong password validation for admin
+- ✅ Department and designation fields
+- ✅ Email notification support
+- ✅ Password visibility toggle
+- ✅ Confirm password validation
+- ✅ Certificate uploads (PDF, JPG, PNG - 10MB max)
+- ✅ FDP Reimbursement module
+- ✅ Achievements section
+- ✅ Internship activities
+- ✅ Unified audit/reporting with PDF/Excel
+- ✅ Cloud MongoDB support (Atlas)
+
+---
+
+**Built with ❤️ for Faculty Development Program Management**

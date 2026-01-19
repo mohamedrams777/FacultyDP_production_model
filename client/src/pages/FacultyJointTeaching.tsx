@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, FileText, Clock } from 'lucide-react';
+import { Plus, Edit, Trash2, FileText, Clock, Eye } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -17,6 +17,7 @@ const FacultyJointTeaching = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<JointTeaching | null>(null);
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
   useEffect(() => {
     loadRecords();
@@ -33,6 +34,7 @@ const FacultyJointTeaching = () => {
         courseCode: item.courseCode,
         facultyInvolved: item.facultyInvolved,
         syllabusDoc: item.syllabusDoc,
+        certificate: item.certificate,
         hours: item.hours,
       })));
     } catch (error) {
@@ -46,13 +48,18 @@ const FacultyJointTeaching = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const certificateFile = (formData.get('certificate') as File);
     
-    const data = {
+    const data: any = {
       courseName: formData.get('courseName') as string,
       courseCode: formData.get('courseCode') as string,
       facultyInvolved: formData.get('facultyInvolved') as string,
       hours: parseInt(formData.get('hours') as string),
     };
+
+    if (certificateFile && certificateFile.size > 0) {
+      data.certificate = certificateFile;
+    }
 
     try {
       if (editingRecord) {
@@ -65,9 +72,9 @@ const FacultyJointTeaching = () => {
       await loadRecords();
       setIsDialogOpen(false);
       setEditingRecord(null);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save record:', error);
-      toast({ title: 'Failed to save record', variant: 'destructive' });
+      toast({ title: error.message || 'Failed to save record', variant: 'destructive' });
     }
   };
 
@@ -119,6 +126,21 @@ const FacultyJointTeaching = () => {
                 <Label htmlFor="hours">Hours (10-14)</Label>
                 <Input id="hours" name="hours" type="number" min="10" max="14" defaultValue={editingRecord?.hours} required />
               </div>
+              <div>
+                <Label htmlFor="certificate">Certificate (PDF, JPG, PNG - Max 10MB)</Label>
+                <Input
+                  id="certificate"
+                  name="certificate"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  className="cursor-pointer"
+                />
+                {editingRecord?.certificate && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Current certificate: {editingRecord.certificate.split('/').pop()}
+                  </p>
+                )}
+              </div>
               <Button type="submit" className="w-full">
                 {editingRecord ? 'Update' : 'Add'} Course
               </Button>
@@ -153,6 +175,19 @@ const FacultyJointTeaching = () => {
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <FileText className="h-4 w-4" />
                     Syllabus Available
+                  </div>
+                )}
+                {jt.certificate && (
+                  <div className="pt-2">
+                    <a
+                      href={`${API_BASE_URL.replace('/api', '')}${jt.certificate}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-sm text-primary hover:underline"
+                    >
+                      <Eye className="h-4 w-4" />
+                      View Certificate
+                    </a>
                   </div>
                 )}
                 <div className="flex gap-2 pt-2">

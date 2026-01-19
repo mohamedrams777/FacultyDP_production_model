@@ -143,37 +143,6 @@ const AdminDashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Recent Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>Latest updates from faculty members</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Award className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-foreground">New FDP Added</p>
-                <p className="text-sm text-muted-foreground">Prof. Jane Smith added "Cloud Computing with AWS"</p>
-              </div>
-              <span className="text-xs text-muted-foreground">2 hours ago</span>
-            </div>
-            <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
-              <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-accent" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-foreground">Seminar Conducted</p>
-                <p className="text-sm text-muted-foreground">Dr. Robert Johnson conducted "Cybersecurity Best Practices"</p>
-              </div>
-              <span className="text-xs text-muted-foreground">5 hours ago</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

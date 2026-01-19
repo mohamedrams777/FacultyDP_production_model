@@ -9,6 +9,9 @@ const JointTeaching = require('../models/JointTeaching');
 const AdjunctFaculty = require('../models/AdjunctFaculty');
 const Notification = require('../models/Notification');
 const Event = require('../models/Event');
+const FDPReimbursement = require('../models/FDPReimbursement');
+const Achievement = require('../models/Achievement');
+const Internship = require('../models/Internship');
 
 // Middleware to check admin role
 const checkAdmin = async (req, res, next) => {
@@ -293,6 +296,135 @@ router.get('/dashboard', checkAdmin, async (req, res) => {
         totalAdjunct,
       },
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========== FDP Reimbursement Management ==========
+router.get('/reimbursements', checkAdmin, async (req, res) => {
+  try {
+    const records = await FDPReimbursement.find()
+      .populate('facultyId', 'name email department')
+      .populate('fdpId', 'title')
+      .populate('reviewedBy', 'name')
+      .sort({ createdAt: -1 });
+    res.json(records);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.put('/reimbursements/:id/status', checkAdmin, async (req, res) => {
+  try {
+    const userId = req.headers['user-id'];
+    const { status, reviewComments } = req.body;
+    
+    if (!['pending', 'approved', 'rejected', 'processed'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+    
+    const updateData = {
+      status,
+      reviewedBy: userId,
+      reviewedDate: Date.now(),
+      updatedAt: Date.now(),
+    };
+    
+    if (status === 'processed') {
+      updateData.processedDate = Date.now();
+    }
+    
+    if (reviewComments) {
+      updateData.reviewComments = reviewComments;
+    }
+    
+    const record = await FDPReimbursement.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    )
+      .populate('facultyId', 'name email')
+      .populate('fdpId', 'title');
+    
+    if (!record) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+
+    // Create notification
+    await Notification.create({
+      recipientId: record.facultyId._id,
+      sender: 'Admin',
+      message: `Your reimbursement request for "${record.fdpTitle}" has been ${status}`,
+      type: status === 'approved' || status === 'processed' ? 'success' : 'info',
+    });
+
+    res.json(record);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========== Achievement Management ==========
+router.get('/achievements', checkAdmin, async (req, res) => {
+  try {
+    const records = await Achievement.find()
+      .populate('facultyId', 'name email department')
+      .populate('verifiedBy', 'name')
+      .sort({ date: -1, createdAt: -1 });
+    res.json(records);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.put('/achievements/:id/verify', checkAdmin, async (req, res) => {
+  try {
+    const userId = req.headers['user-id'];
+    const { status } = req.body;
+    
+    if (!['pending', 'verified', 'rejected'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+    
+    const updateData = {
+      status,
+      verifiedBy: userId,
+      verifiedDate: Date.now(),
+      updatedAt: Date.now(),
+    };
+    
+    const record = await Achievement.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    ).populate('facultyId', 'name email');
+    
+    if (!record) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+
+    // Create notification
+    await Notification.create({
+      recipientId: record.facultyId._id,
+      sender: 'Admin',
+      message: `Your achievement "${record.title}" has been ${status}`,
+      type: status === 'verified' ? 'success' : 'info',
+    });
+
+    res.json(record);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ========== Internship Management ==========
+router.get('/internships', checkAdmin, async (req, res) => {
+  try {
+    const records = await Internship.find()
+      .populate('facultyId', 'name email department')
+      .sort({ startDate: -1, createdAt: -1 });
+    res.json(records);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

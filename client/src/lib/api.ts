@@ -2,11 +2,12 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 // Helper function to get auth headers
-const getAuthHeaders = (): HeadersInit => {
+const getAuthHeaders = (includeContentType: boolean = true): HeadersInit => {
   const userId = localStorage.getItem('user-id');
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-  };
+  const headers: HeadersInit = {};
+  if (includeContentType) {
+    headers['Content-Type'] = 'application/json';
+  }
   if (userId) {
     headers['user-id'] = userId;
   }
@@ -86,18 +87,61 @@ export const facultyAPI = {
     venue: string;
     reportUpload?: string;
     proofDoc?: string;
+    certificate?: File;
   }) => {
-    return apiRequest<any>('/faculty/fdp/attended', {
+    const formData = new FormData();
+    formData.append('title', data.title);
+    formData.append('mode', data.mode);
+    formData.append('duration', data.duration);
+    formData.append('venue', data.venue);
+    if (data.reportUpload) formData.append('reportUpload', data.reportUpload);
+    if (data.proofDoc) formData.append('proofDoc', data.proofDoc);
+    if (data.certificate) formData.append('certificate', data.certificate);
+
+    const userId = localStorage.getItem('user-id');
+    const url = `${API_BASE_URL}/faculty/fdp/attended`;
+    const config: RequestInit = {
       method: 'POST',
-      body: JSON.stringify(data),
-    });
+      headers: {
+        'user-id': userId || '',
+      },
+      body: formData,
+    };
+
+    const response = await fetch(url, config);
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || `HTTP error! status: ${response.status}`);
+    }
+    return result;
   },
 
-  updateFDPAttended: async (id: string, data: any) => {
-    return apiRequest<any>(`/faculty/fdp/attended/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
+  updateFDPAttended: async (id: string, data: any & { certificate?: File }) => {
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      if (key === 'certificate' && data[key] instanceof File) {
+        formData.append('certificate', data[key]);
+      } else if (key !== 'certificate') {
+        formData.append(key, data[key]);
+      }
     });
+
+    const userId = localStorage.getItem('user-id');
+    const url = `${API_BASE_URL}/faculty/fdp/attended/${id}`;
+    const config: RequestInit = {
+      method: 'PUT',
+      headers: {
+        'user-id': userId || '',
+      },
+      body: formData,
+    };
+
+    const response = await fetch(url, config);
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || `HTTP error! status: ${response.status}`);
+    }
+    return result;
   },
 
   deleteFDPAttended: async (id: string) => {
@@ -149,18 +193,61 @@ export const facultyAPI = {
     venue: string;
     description?: string;
     attendees?: number;
+    certificate?: File;
   }) => {
-    return apiRequest<any>('/faculty/seminars', {
+    const formData = new FormData();
+    formData.append('title', data.title);
+    formData.append('topic', data.topic);
+    formData.append('date', data.date);
+    formData.append('venue', data.venue);
+    if (data.description) formData.append('description', data.description);
+    if (data.attendees !== undefined) formData.append('attendees', data.attendees.toString());
+    if (data.certificate) formData.append('certificate', data.certificate);
+
+    const userId = localStorage.getItem('user-id');
+    const url = `${API_BASE_URL}/faculty/seminars`;
+    const config: RequestInit = {
       method: 'POST',
-      body: JSON.stringify(data),
-    });
+      headers: {
+        'user-id': userId || '',
+      },
+      body: formData,
+    };
+
+    const response = await fetch(url, config);
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || `HTTP error! status: ${response.status}`);
+    }
+    return result;
   },
 
-  updateSeminar: async (id: string, data: any) => {
-    return apiRequest<any>(`/faculty/seminars/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
+  updateSeminar: async (id: string, data: any & { certificate?: File }) => {
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      if (key === 'certificate' && data[key] instanceof File) {
+        formData.append('certificate', data[key]);
+      } else if (key !== 'certificate') {
+        formData.append(key, data[key]);
+      }
     });
+
+    const userId = localStorage.getItem('user-id');
+    const url = `${API_BASE_URL}/faculty/seminars/${id}`;
+    const config: RequestInit = {
+      method: 'PUT',
+      headers: {
+        'user-id': userId || '',
+      },
+      body: formData,
+    };
+
+    const response = await fetch(url, config);
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || `HTTP error! status: ${response.status}`);
+    }
+    return result;
   },
 
   deleteSeminar: async (id: string) => {
@@ -210,18 +297,60 @@ export const facultyAPI = {
     facultyInvolved: string;
     syllabusDoc?: string;
     hours: number;
+    certificate?: File;
   }) => {
-    return apiRequest<any>('/faculty/joint-teaching', {
+    const formData = new FormData();
+    formData.append('courseName', data.courseName);
+    formData.append('courseCode', data.courseCode);
+    formData.append('facultyInvolved', data.facultyInvolved);
+    formData.append('hours', data.hours.toString());
+    if (data.syllabusDoc) formData.append('syllabusDoc', data.syllabusDoc);
+    if (data.certificate) formData.append('certificate', data.certificate);
+
+    const userId = localStorage.getItem('user-id');
+    const url = `${API_BASE_URL}/faculty/joint-teaching`;
+    const config: RequestInit = {
       method: 'POST',
-      body: JSON.stringify(data),
-    });
+      headers: {
+        'user-id': userId || '',
+      },
+      body: formData,
+    };
+
+    const response = await fetch(url, config);
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || `HTTP error! status: ${response.status}`);
+    }
+    return result;
   },
 
-  updateJointTeaching: async (id: string, data: any) => {
-    return apiRequest<any>(`/faculty/joint-teaching/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
+  updateJointTeaching: async (id: string, data: any & { certificate?: File }) => {
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      if (key === 'certificate' && data[key] instanceof File) {
+        formData.append('certificate', data[key]);
+      } else if (key !== 'certificate') {
+        formData.append(key, data[key]);
+      }
     });
+
+    const userId = localStorage.getItem('user-id');
+    const url = `${API_BASE_URL}/faculty/joint-teaching/${id}`;
+    const config: RequestInit = {
+      method: 'PUT',
+      headers: {
+        'user-id': userId || '',
+      },
+      body: formData,
+    };
+
+    const response = await fetch(url, config);
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || `HTTP error! status: ${response.status}`);
+    }
+    return result;
   },
 
   deleteJointTeaching: async (id: string) => {
@@ -283,6 +412,179 @@ export const facultyAPI = {
       stats: any;
       recentFDPs: any[];
     }>('/faculty/dashboard');
+  },
+
+  // FDP Reimbursements
+  getReimbursements: async () => {
+    return apiRequest<any[]>('/faculty/reimbursements');
+  },
+
+  createReimbursement: async (data: any & { receiptDocument?: File }) => {
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      if (key === 'receiptDocument' && data[key] instanceof File) {
+        formData.append('receiptDocument', data[key]);
+      } else if (key !== 'receiptDocument') {
+        formData.append(key, data[key]);
+      }
+    });
+
+    const userId = localStorage.getItem('user-id');
+    const url = `${API_BASE_URL}/faculty/reimbursements`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'user-id': userId || '' },
+      body: formData,
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Request failed');
+    return result;
+  },
+
+  updateReimbursement: async (id: string, data: any & { receiptDocument?: File }) => {
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      if (key === 'receiptDocument' && data[key] instanceof File) {
+        formData.append('receiptDocument', data[key]);
+      } else if (key !== 'receiptDocument') {
+        formData.append(key, data[key]);
+      }
+    });
+
+    const userId = localStorage.getItem('user-id');
+    const url = `${API_BASE_URL}/faculty/reimbursements/${id}`;
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: { 'user-id': userId || '' },
+      body: formData,
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Request failed');
+    return result;
+  },
+
+  deleteReimbursement: async (id: string) => {
+    return apiRequest<{ message: string }>(`/faculty/reimbursements/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Achievements
+  getAchievements: async () => {
+    return apiRequest<any[]>('/faculty/achievements');
+  },
+
+  createAchievement: async (data: any & { certificate?: File; supportingDocument?: File }) => {
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      if ((key === 'certificate' || key === 'supportingDocument') && data[key] instanceof File) {
+        formData.append(key, data[key]);
+      } else if (key !== 'certificate' && key !== 'supportingDocument') {
+        formData.append(key, data[key]);
+      }
+    });
+
+    const userId = localStorage.getItem('user-id');
+    const url = `${API_BASE_URL}/faculty/achievements`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'user-id': userId || '' },
+      body: formData,
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Request failed');
+    return result;
+  },
+
+  updateAchievement: async (id: string, data: any & { certificate?: File; supportingDocument?: File }) => {
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      if ((key === 'certificate' || key === 'supportingDocument') && data[key] instanceof File) {
+        formData.append(key, data[key]);
+      } else if (key !== 'certificate' && key !== 'supportingDocument') {
+        formData.append(key, data[key]);
+      }
+    });
+
+    const userId = localStorage.getItem('user-id');
+    const url = `${API_BASE_URL}/faculty/achievements/${id}`;
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: { 'user-id': userId || '' },
+      body: formData,
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Request failed');
+    return result;
+  },
+
+  deleteAchievement: async (id: string) => {
+    return apiRequest<{ message: string }>(`/faculty/achievements/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Internships
+  getInternships: async () => {
+    return apiRequest<any[]>('/faculty/internships');
+  },
+
+  createInternship: async (data: any & { certificate?: File; report?: File }) => {
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      if ((key === 'certificate' || key === 'report') && data[key] instanceof File) {
+        formData.append(key, data[key]);
+      } else if (key !== 'certificate' && key !== 'report') {
+        if (key === 'skillsGained' && Array.isArray(data[key])) {
+          formData.append(key, data[key].join(','));
+        } else {
+          formData.append(key, data[key]);
+        }
+      }
+    });
+
+    const userId = localStorage.getItem('user-id');
+    const url = `${API_BASE_URL}/faculty/internships`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'user-id': userId || '' },
+      body: formData,
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Request failed');
+    return result;
+  },
+
+  updateInternship: async (id: string, data: any & { certificate?: File; report?: File }) => {
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      if ((key === 'certificate' || key === 'report') && data[key] instanceof File) {
+        formData.append(key, data[key]);
+      } else if (key !== 'certificate' && key !== 'report') {
+        if (key === 'skillsGained' && Array.isArray(data[key])) {
+          formData.append(key, data[key].join(','));
+        } else {
+          formData.append(key, data[key]);
+        }
+      }
+    });
+
+    const userId = localStorage.getItem('user-id');
+    const url = `${API_BASE_URL}/faculty/internships/${id}`;
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: { 'user-id': userId || '' },
+      body: formData,
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Request failed');
+    return result;
+  },
+
+  deleteInternship: async (id: string) => {
+    return apiRequest<{ message: string }>(`/faculty/internships/${id}`, {
+      method: 'DELETE',
+    });
   },
 };
 
@@ -392,6 +694,35 @@ export const adminAPI = {
   getDashboard: async () => {
     return apiRequest<{ stats: any }>('/admin/dashboard');
   },
+
+  // Reimbursements
+  getReimbursements: async () => {
+    return apiRequest<any[]>('/admin/reimbursements');
+  },
+
+  updateReimbursementStatus: async (id: string, status: string, reviewComments?: string) => {
+    return apiRequest<any>(`/admin/reimbursements/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, reviewComments }),
+    });
+  },
+
+  // Achievements
+  getAchievements: async () => {
+    return apiRequest<any[]>('/admin/achievements');
+  },
+
+  verifyAchievement: async (id: string, status: 'pending' | 'verified' | 'rejected') => {
+    return apiRequest<any>(`/admin/achievements/${id}/verify`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  // Internships
+  getInternships: async () => {
+    return apiRequest<any[]>('/admin/internships');
+  },
 };
 
 // ========== HOD API ==========
@@ -450,5 +781,38 @@ export const eventsAPI = {
 
   getEventById: async (id: string) => {
     return apiRequest<any>(`/events/${id}`);
+  },
+};
+
+// ========== Audit API ==========
+export const auditAPI = {
+  getAuditData: async (params?: {
+    startDate?: string;
+    endDate?: string;
+    department?: string;
+    facultyId?: string;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.department) queryParams.append('department', params.department);
+    if (params?.facultyId) queryParams.append('facultyId', params.facultyId);
+    
+    const url = `/audit/data${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    return apiRequest<any>(url);
+  },
+
+  getAuditStats: async (params?: {
+    startDate?: string;
+    endDate?: string;
+    department?: string;
+  }) => {
+    const queryParams = new URLSearchParams();
+    if (params?.startDate) queryParams.append('startDate', params.startDate);
+    if (params?.endDate) queryParams.append('endDate', params.endDate);
+    if (params?.department) queryParams.append('department', params.department);
+    
+    const url = `/audit/stats${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+    return apiRequest<any>(url);
   },
 };

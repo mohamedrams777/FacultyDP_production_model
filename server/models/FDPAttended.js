@@ -8,6 +8,7 @@ const fdpAttendedSchema = new mongoose.Schema({
   venue: { type: String, required: true },
   reportUpload: { type: String },
   proofDoc: { type: String },
+  certificate: { type: String }, // Certificate file path (PDF, JPG, PNG)
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
