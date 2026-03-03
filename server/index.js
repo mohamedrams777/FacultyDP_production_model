@@ -14,7 +14,7 @@ app.use(express.json());
 /* =========================
    MongoDB Connection
 ========================= */
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = "mongodb+srv://fdpuser:Fdp123@cluster0.cv075.mongodb.net/FDP?retryWrites=true&w=majority";
 
 async function connectMongoDB() {
   try {
