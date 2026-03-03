@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, FileText, Calendar, MapPin, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, FileText, Calendar, MapPin, Eye, Upload, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ const FacultySeminars = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingSeminar, setEditingSeminar] = useState<Seminar | null>(null);
+  const [certificateFile, setCertificateFile] = useState<File | null>(null);
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
   useEffect(() => {
@@ -38,6 +39,7 @@ const FacultySeminars = () => {
         description: item.description || '',
         attendees: item.attendees || 0,
         certificate: item.certificate,
+        status: item.status || 'pending',
       })));
     } catch (error) {
       console.error('Failed to load seminars:', error);
@@ -47,10 +49,53 @@ const FacultySeminars = () => {
     }
   };
 
+  const validateFileFormat = (file: File): boolean => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    return allowedTypes.includes(file.type);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!validateFileFormat(file)) {
+        toast.error('Invalid file format. Please upload jpg, jpeg, png, docx, or pdf files only');
+        e.target.value = '';
+        return;
+      }
+      setCertificateFile(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Check if user is authenticated
+    if (!user?.id) {
+      toast.error('Authentication required. Please log in to add records');
+      return;
+    }
+    
     const formData = new FormData(e.currentTarget);
     const certificateFile = (formData.get('certificate') as File);
+    const attendeesCount = parseInt(formData.get('attendees') as string) || 0;
+    
+    // Validate attendees count
+    if (attendeesCount <= 0) {
+      toast.error('Attendees count must be greater than zero');
+      return;
+    }
+    
+    // Validate certificate for new records
+    if (!certificateFile && !editingSeminar) {
+      toast.error('Certificate is required. Please upload a certificate file');
+      return;
+    }
+    
+    // Validate certificate for new uploads
+    if (certificateFile && certificateFile.size > 0 && !validateFileFormat(certificateFile)) {
+      toast.error('Invalid file format. Please upload jpg, jpeg, png, docx, or pdf files only');
+      return;
+    }
     
     const data: any = {
       title: formData.get('title') as string,
@@ -58,11 +103,13 @@ const FacultySeminars = () => {
       date: formData.get('date') as string,
       venue: formData.get('venue') as string,
       description: formData.get('description') as string || '',
-      attendees: parseInt(formData.get('attendees') as string) || 0,
+      attendees: attendeesCount,
     };
 
     if (certificateFile && certificateFile.size > 0) {
       data.certificate = certificateFile;
+    } else if (editingSeminar) {
+      data.certificate = formData.get('existingCertificate') as string;
     }
 
     try {
@@ -76,6 +123,7 @@ const FacultySeminars = () => {
       await loadSeminars();
       setIsDialogOpen(false);
       setEditingSeminar(null);
+      setCertificateFile(null);
     } catch (error: any) {
       console.error('Failed to save seminar:', error);
       toast.error(error.message || 'Failed to save seminar');
@@ -162,13 +210,15 @@ const FacultySeminars = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="attendees">Attendees</Label>
+                      <Label htmlFor="attendees">Attendees *</Label>
                       <Input
                         id="attendees"
                         name="attendees"
                         type="number"
                         defaultValue={editingSeminar?.attendees || 0}
-                        min="0"
+                        min="1"
+                        required
+                        placeholder="Number of attendees"
                       />
                     </div>
                   </div>
@@ -193,18 +243,26 @@ const FacultySeminars = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="certificate">Certificate (PDF, JPG, PNG - Max 10MB)</Label>
+                    <Label htmlFor="certificate">Certificate * (JPG, JPEG, PNG, DOCX, PDF - Max 10MB)</Label>
                     <Input
                       id="certificate"
                       name="certificate"
                       type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
+                      accept=".jpg,.jpeg,.png,.docx,.pdf"
                       className="cursor-pointer"
+                      onChange={handleFileChange}
+                      required={!editingSeminar}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Supported formats: jpg, jpeg, png, docx, pdf
+                    </p>
                     {editingSeminar?.certificate && (
                       <p className="text-xs text-muted-foreground mt-1">
                         Current certificate: {editingSeminar.certificate.split('/').pop()}
                       </p>
+                    )}
+                    {editingSeminar && (
+                      <input type="hidden" name="existingCertificate" value={editingSeminar.certificate} />
                     )}
                   </div>
                   <div className="flex justify-end gap-2">
@@ -268,6 +326,16 @@ const FacultySeminars = () => {
                         <Badge variant="outline">{seminar.attendees} attendees</Badge>
                       </div>
                     )}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">Status:</span>
+                      <span className={`text-sm font-medium px-2 py-1 rounded-full text-xs ${
+                        seminar.status === 'approved' ? 'bg-green-100 text-green-800' :
+                        seminar.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {seminar.status?.toUpperCase() || 'PENDING'}
+                      </span>
+                    </div>
                     {seminar.certificate && (
                       <div className="pt-2">
                         <a

@@ -51,7 +51,8 @@ const AdminFDPAttended = () => {
   const filteredRecords = records.filter((record: any) =>
     record.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     record.mode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    record.venue?.toLowerCase().includes(searchQuery.toLowerCase())
+    record.venue?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    record.facultyId?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const downloadExcel = () => {
@@ -129,7 +130,7 @@ const AdminFDPAttended = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by title, mode, or venue..."
+                placeholder="Search by faculty name, title, mode, or venue..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"

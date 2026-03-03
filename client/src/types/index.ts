@@ -105,6 +105,7 @@ export interface Seminar {
   description: string;
   attendees?: number;
   certificate?: string;
+  status: 'pending' | 'approved' | 'rejected';
 }
 
 export interface Notification {

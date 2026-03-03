@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileSpreadsheet, FileText, Search, Briefcase } from 'lucide-react';
+import { FileSpreadsheet, FileText, Search, Briefcase, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -37,8 +37,27 @@ const AdminInternships = () => {
   const filteredRecords = records.filter((record: any) =>
     record.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     record.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    record.facultyId?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    record.facultyId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    record.regNo?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleStatusUpdate = async (id: string, status: 'approved' | 'rejected') => {
+    try {
+      await adminAPI.updateInternshipStatus(id, status);
+      toast({ 
+        title: 'Status updated', 
+        description: `Internship ${status} successfully` 
+      });
+      await loadRecords();
+    } catch (error: any) {
+      console.error('Failed to update status:', error);
+      toast({ 
+        title: 'Failed to update status', 
+        description: error.message || 'Something went wrong',
+        variant: 'destructive' 
+      });
+    }
+  };
 
   const downloadExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(
@@ -89,12 +108,20 @@ const AdminInternships = () => {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, any> = {
+      pending: { variant: 'secondary', label: 'Pending', icon: Clock },
+      approved: { variant: 'default', label: 'Approved', icon: CheckCircle },
+      rejected: { variant: 'destructive', label: 'Rejected', icon: XCircle },
       ongoing: { variant: 'default', label: 'Ongoing' },
       completed: { variant: 'default', label: 'Completed' },
-      terminated: { variant: 'destructive', label: 'Terminated' },
     };
-    const config = variants[status] || variants.ongoing;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    const config = variants[status] || variants.pending;
+    const Icon = config.icon;
+    return (
+      <Badge variant={config.variant} className="flex items-center gap-1">
+        {Icon && <Icon className="h-3 w-3" />}
+        {config.label}
+      </Badge>
+    );
   };
 
   return (
@@ -143,9 +170,10 @@ const AdminInternships = () => {
                     <TableHead>Faculty</TableHead>
                     <TableHead>Student</TableHead>
                     <TableHead>Company</TableHead>
-                    <TableHead>Position</TableHead>
+                    <TableHead>Mode</TableHead>
                     <TableHead>Duration</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -155,15 +183,46 @@ const AdminInternships = () => {
                       <TableCell>
                         <div>
                           <div className="font-medium">{record.studentName}</div>
-                          {record.studentRollNo && (
-                            <div className="text-xs text-muted-foreground">{record.studentRollNo}</div>
+                          {record.regNo && (
+                            <div className="text-xs text-muted-foreground">{record.regNo}</div>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>{record.companyName}</TableCell>
-                      <TableCell>{record.position}</TableCell>
-                      <TableCell>{record.duration ? `${record.duration} weeks` : 'N/A'}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize">
+                          {record.mode || 'N/A'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{record.duration ? `${record.duration} ${record.durationUnit || 'weeks'}` : 'N/A'}</TableCell>
                       <TableCell>{getStatusBadge(record.status)}</TableCell>
+                      <TableCell>
+                        {record.status === 'pending' && (
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-green-600 hover:text-green-700 border-green-600"
+                              onClick={() => handleStatusUpdate(record._id || record.id, 'approved')}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700 border-red-600"
+                              onClick={() => handleStatusUpdate(record._id || record.id, 'rejected')}
+                            >
+                              <XCircle className="h-4 w-4 mr-1" />
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+                        {record.status !== 'pending' && (
+                          <span className="text-sm text-muted-foreground">Processed</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

@@ -5,7 +5,12 @@ const adjunctFacultySchema = new mongoose.Schema({
   facultyName: { type: String, required: true },
   department: { type: String, required: true },
   courseCode: { type: String, required: true },
-  supportingDocs: { type: String },
+  fromDate: { type: Date, required: true },
+  toDate: { type: Date, required: true },
+  duration: { type: Number, required: true },
+  durationType: { type: String, enum: ['days', 'weeks'], required: true },
+  certificate: { type: String, required: true },
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FileText, Download, ExternalLink } from 'lucide-react';
 
-export type RecordType = 'fdp-attended' | 'fdp-organized' | 'seminar' | 'joint-teaching';
+export type RecordType = 'fdp-attended' | 'fdp-organized' | 'seminar' | 'joint-teaching' | 'abl' | 'adjunct-faculty';
 
 interface RecordDetailsModalProps {
     isOpen: boolean;
@@ -157,6 +157,37 @@ export function RecordDetailsModal({
                         <div className="border-t pt-4">
                             {renderDocument(record.certificate, 'Certificate')}
                             {renderDocument(record.syllabusDoc, 'Syllabus Document')}
+                        </div>
+                    </>
+                );
+            case 'abl':
+                return (
+                    <>
+                        <div className="grid grid-cols-2 gap-4">
+                            {renderField('Faculty Name', record.facultyId?.name)}
+                            {renderField('Subject', record.subjectName)}
+                            {renderField('Course Code', record.courseCode)}
+                            {renderField('Industry Connect', record.industryConnect)}
+                            {renderStatus(record.status)}
+                        </div>
+                        <div className="border-t pt-4">
+                            {renderDocument(record.certificate, 'Certificate')}
+                        </div>
+                    </>
+                );
+            case 'adjunct-faculty':
+                return (
+                    <>
+                        <div className="grid grid-cols-2 gap-4">
+                            {renderField('Faculty Name', record.facultyId?.name)}
+                            {renderField('Adjunct Faculty Name', record.facultyName)}
+                            {renderField('Department', record.department)}
+                            {renderField('Course Code', record.courseCode)}
+                            {renderField('Duration', record.duration ? `${record.duration} ${record.durationType}` : '')}
+                            {renderStatus(record.status)}
+                        </div>
+                        <div className="border-t pt-4">
+                            {renderDocument(record.certificate, 'Certificate')}
                         </div>
                     </>
                 );

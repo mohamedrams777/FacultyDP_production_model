@@ -6,13 +6,14 @@ const achievementSchema = new mongoose.Schema({
   description: { type: String, required: true },
   category: { 
     type: String, 
-    enum: ['award', 'publication', 'research', 'patent', 'recognition', 'certification', 'other'], 
+    enum: ['award', 'publication', 'research', 'patent', 'recognition', 'certification', 'conference', 'other'], 
     required: true 
   },
+  patentType: { type: String, enum: ['design', 'utility', 'provisional', 'addition'] }, // Required when category is patent
   issuer: { type: String }, // Organization/Institute that issued the achievement
   date: { type: Date, required: true },
-  certificate: { type: String }, // Path to certificate document
-  supportingDocument: { type: String }, // Path to supporting document
+  certificate: { type: String, required: true }, // Path to certificate document - now mandatory
+  supportingDocument: { type: String }, // Path to supporting document - optional
   link: { type: String }, // URL if applicable (e.g., publication link)
   status: { 
     type: String, 

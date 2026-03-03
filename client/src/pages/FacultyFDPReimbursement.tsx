@@ -21,6 +21,9 @@ const FacultyFDPReimbursement = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
   const [selectedFdpId, setSelectedFdpId] = useState('');
+  const [expenseType, setExpenseType] = useState('');
+  const [otherExpenseType, setOtherExpenseType] = useState('');
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
   useEffect(() => {
@@ -64,10 +67,73 @@ const FacultyFDPReimbursement = () => {
     }
   };
 
+  const validateAmount = (amount: string): boolean => {
+    const num = parseFloat(amount);
+    return !isNaN(num) && num > 0 && Number.isInteger(num); // Allow any positive whole number
+  };
+
+  const validateAccountNumber = (accountNumber: string): boolean => {
+    return /^\d+$/.test(accountNumber) && accountNumber.length >= 10; // Only allow numeric input with at least 10 digits
+  };
+
+  const validateFileFormat = (file: File): boolean => {
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    return allowedTypes.includes(file.type);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!validateFileFormat(file)) {
+        toast({ title: 'Invalid file format', description: 'Please upload PDF, JPG, or PNG files only', variant: 'destructive' });
+        e.target.value = '';
+        return;
+      }
+      setReceiptFile(file);
+    }
+  };
+
+  const handleExpenseTypeChange = (value: string) => {
+    setExpenseType(value);
+    if (value !== 'other') {
+      setOtherExpenseType('');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Check if user is authenticated
+    if (!user?.id) {
+      toast({ title: 'Authentication required', description: 'Please log in to submit reimbursement requests', variant: 'destructive' });
+      return;
+    }
+    
     const formData = new FormData(e.currentTarget);
-    const receiptFile = (formData.get('receiptDocument') as File);
+    const receiptFile = formData.get('receiptDocument') as File;
+    const amount = formData.get('amount') as string;
+    const accountNumber = formData.get('accountNumber') as string;
+    
+    // Validations
+    if (!receiptFile && !editingRecord) {
+      toast({ title: 'Receipt required', description: 'Please upload a receipt document', variant: 'destructive' });
+      return;
+    }
+    
+    if (!validateAmount(amount)) {
+      toast({ title: 'Invalid amount', description: 'Amount must be a positive number without decimals', variant: 'destructive' });
+      return;
+    }
+    
+    if (!validateAccountNumber(accountNumber)) {
+      toast({ title: 'Invalid account number', description: 'Account number must contain only numbers and be at least 10 digits', variant: 'destructive' });
+      return;
+    }
+    
+    if (expenseType === 'other' && !otherExpenseType.trim()) {
+      toast({ title: 'Other expense type required', description: 'Please specify the other expense type', variant: 'destructive' });
+      return;
+    }
     
     const fdpId = selectedFdpId || editingRecord?.fdpId || formData.get('fdpId');
     const selectedFDP = fdps.find((f: any) => (f._id || f.id) === fdpId);
@@ -75,15 +141,16 @@ const FacultyFDPReimbursement = () => {
     const reimbursementData: any = {
       fdpId: fdpId as string,
       fdpTitle: selectedFDP?.title || editingRecord?.fdpTitle || formData.get('fdpTitle') as string,
-      amount: parseFloat(formData.get('amount') as string),
+      amount: parseFloat(amount),
       currency: formData.get('currency') as string || 'INR',
-      expenseType: formData.get('expenseType') as string,
+      expenseType: expenseType === 'other' ? otherExpenseType : expenseType,
       description: formData.get('description') as string,
       bankDetails: {
-        accountNumber: formData.get('accountNumber') as string,
+        accountNumber: accountNumber,
         ifscCode: formData.get('ifscCode') as string,
         bankName: formData.get('bankName') as string,
         accountHolderName: formData.get('accountHolderName') as string,
+        bankBranch: formData.get('bankBranch') as string,
       },
     };
 
@@ -103,6 +170,9 @@ const FacultyFDPReimbursement = () => {
       setIsDialogOpen(false);
       setEditingRecord(null);
       setSelectedFdpId('');
+      setExpenseType('');
+      setOtherExpenseType('');
+      setReceiptFile(null);
     } catch (error: any) {
       console.error('Failed to save reimbursement:', error);
       toast({ title: error.message || 'Failed to save reimbursement', variant: 'destructive' });
@@ -190,9 +260,10 @@ const FacultyFDPReimbursement = () => {
                     id="amount"
                     name="amount"
                     type="number"
-                    step="0.01"
+                    step="1"
                     defaultValue={editingRecord?.amount}
                     required
+                    placeholder="Enter amount"
                   />
                 </div>
                 <div>
@@ -212,9 +283,14 @@ const FacultyFDPReimbursement = () => {
 
               <div>
                 <Label htmlFor="expenseType">Expense Type *</Label>
-                <Select name="expenseType" defaultValue={editingRecord?.expenseType || 'travel'} required>
+                <Select 
+                  name="expenseType" 
+                  value={editingRecord?.expenseType || expenseType} 
+                  onValueChange={handleExpenseTypeChange}
+                  required
+                >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select expense type" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="travel">Travel</SelectItem>
@@ -225,6 +301,21 @@ const FacultyFDPReimbursement = () => {
                   </SelectContent>
                 </Select>
               </div>
+              
+              {expenseType === 'other' && (
+                <div>
+                  <Label htmlFor="otherExpenseType">Other Expense Type *</Label>
+                  <Input
+                    id="otherExpenseType"
+                    name="otherExpenseType"
+                    type="text"
+                    value={otherExpenseType}
+                    onChange={(e) => setOtherExpenseType(e.target.value)}
+                    placeholder="Please specify other expense type"
+                    required={expenseType === 'other'}
+                  />
+                </div>
+              )}
 
               <div>
                 <Label htmlFor="description">Description</Label>
@@ -237,14 +328,19 @@ const FacultyFDPReimbursement = () => {
               </div>
 
               <div>
-                <Label htmlFor="receiptDocument">Receipt Document (PDF, JPG, PNG - Max 10MB)</Label>
+                <Label htmlFor="receiptDocument">Receipt Document * (PDF, JPG, PNG - Max 10MB)</Label>
                 <Input
                   id="receiptDocument"
                   name="receiptDocument"
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png"
                   className="cursor-pointer"
+                  onChange={handleFileChange}
+                  required={!editingRecord}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Receipt document is mandatory
+                </p>
                 {editingRecord?.receiptDocument && (
                   <p className="text-xs text-muted-foreground mt-1">
                     Current receipt: {editingRecord.receiptDocument.split('/').pop()}
@@ -269,8 +365,12 @@ const FacultyFDPReimbursement = () => {
                     <Input
                       id="accountNumber"
                       name="accountNumber"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       defaultValue={editingRecord?.bankDetails?.accountNumber}
                       required
+                      placeholder="Enter account number (min 10 digits)"
                     />
                   </div>
                   <div>
@@ -287,8 +387,20 @@ const FacultyFDPReimbursement = () => {
                     <Input
                       id="bankName"
                       name="bankName"
+                      type="text"
                       defaultValue={editingRecord?.bankDetails?.bankName}
                       required
+                      placeholder="Enter bank name"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="bankBranch">Bank Branch</Label>
+                    <Input
+                      id="bankBranch"
+                      name="bankBranch"
+                      type="text"
+                      defaultValue={editingRecord?.bankDetails?.bankBranch || ''}
+                      placeholder="Enter bank branch"
                     />
                   </div>
                 </div>

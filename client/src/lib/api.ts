@@ -476,19 +476,66 @@ export const facultyAPI = {
     facultyName: string;
     department: string;
     courseCode: string;
-    supportingDocs?: string;
+    fromDate: string;
+    toDate: string;
+    duration: number;
+    durationType: 'days' | 'weeks';
+    certificate: File;
   }) => {
-    return apiRequest<any>('/faculty/adjunct', {
+    const formData = new FormData();
+    formData.append('facultyName', data.facultyName);
+    formData.append('department', data.department);
+    formData.append('courseCode', data.courseCode);
+    formData.append('fromDate', data.fromDate);
+    formData.append('toDate', data.toDate);
+    formData.append('duration', data.duration.toString());
+    formData.append('durationType', data.durationType);
+    formData.append('certificate', data.certificate);
+
+    const userId = localStorage.getItem('user-id');
+    const url = `${API_BASE_URL}/faculty/adjunct`;
+    const config: RequestInit = {
       method: 'POST',
-      body: JSON.stringify(data),
-    });
+      headers: {
+        'user-id': userId || '',
+      },
+      body: formData,
+    };
+
+    const response = await fetch(url, config);
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || `HTTP error! status: ${response.status}`);
+    }
+    return result;
   },
 
-  updateAdjunctFaculty: async (id: string, data: any) => {
-    return apiRequest<any>(`/faculty/adjunct/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
+  updateAdjunctFaculty: async (id: string, data: any & { certificate?: File }) => {
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      if (key === 'certificate' && data[key] instanceof File) {
+        formData.append('certificate', data[key]);
+      } else if (key !== 'certificate' && data[key] !== undefined) {
+        formData.append(key, String(data[key]));
+      }
     });
+
+    const userId = localStorage.getItem('user-id');
+    const url = `${API_BASE_URL}/faculty/adjunct/${id}`;
+    const config: RequestInit = {
+      method: 'PUT',
+      headers: {
+        'user-id': userId || '',
+      },
+      body: formData,
+    };
+
+    const response = await fetch(url, config);
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || `HTTP error! status: ${response.status}`);
+    }
+    return result;
   },
 
   deleteAdjunctFaculty: async (id: string) => {
@@ -694,6 +741,51 @@ export const facultyAPI = {
       method: 'DELETE',
     });
   },
+
+  // Upcoming Events
+  getUpcomingEvents: async () => {
+    return apiRequest<any[]>('/faculty/upcoming-events');
+  },
+
+  createUpcomingEvent: async (data: {
+    eventName: string;
+    venue: string;
+    startDate: string;
+    endDate: string;
+    duration: number;
+    durationUnit: string;
+    description?: string;
+  }) => {
+    return apiRequest<any>('/faculty/upcoming-events', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateUpcomingEvent: async (id: string, data: any) => {
+    return apiRequest<any>(`/faculty/upcoming-events/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteUpcomingEvent: async (id: string) => {
+    return apiRequest<{ message: string }>(`/faculty/upcoming-events/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  updateUpcomingEventNotification: async (id: string) => {
+    return apiRequest<any>(`/faculty/upcoming-events/${id}/notification`, {
+      method: 'PUT',
+    });
+  },
+
+  deleteNotification: async (id: string) => {
+    return apiRequest<{ message: string }>(`/faculty/notifications/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 // ========== Admin API ==========
@@ -735,9 +827,23 @@ export const adminAPI = {
     return apiRequest<any[]>('/admin/seminars');
   },
 
+  updateSeminarStatus: async (id: string, status: 'pending' | 'approved' | 'rejected') => {
+    return apiRequest<any>(`/admin/seminars/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  },
+
   // ABL
   getABL: async () => {
     return apiRequest<any[]>('/admin/abl');
+  },
+
+  updateABLStatus: async (id: string, status: 'approved' | 'rejected') => {
+    return apiRequest<any>(`/admin/abl/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
   },
 
   // Joint Teaching
@@ -748,6 +854,13 @@ export const adminAPI = {
   // Adjunct Faculty
   getAdjunctFaculty: async () => {
     return apiRequest<any[]>('/admin/adjunct');
+  },
+
+  updateAdjunctFacultyStatus: async (id: string, status: 'pending' | 'approved' | 'rejected') => {
+    return apiRequest<any>(`/admin/adjunct/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
   },
 
   // Events
@@ -798,6 +911,12 @@ export const adminAPI = {
     });
   },
 
+  deleteNotification: async (id: string) => {
+    return apiRequest<{ message: string }>(`/admin/notifications/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   // Dashboard
   getDashboard: async () => {
     return apiRequest<{ stats: any }>('/admin/dashboard');
@@ -830,6 +949,13 @@ export const adminAPI = {
   // Internships
   getInternships: async () => {
     return apiRequest<any[]>('/admin/internships');
+  },
+
+  updateInternshipStatus: async (id: string, status: 'approved' | 'rejected') => {
+    return apiRequest<any>(`/admin/internships/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
   },
 };
 

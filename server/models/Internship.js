@@ -2,28 +2,28 @@ const mongoose = require('mongoose');
 
 const internshipSchema = new mongoose.Schema({
   facultyId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  regNo: { type: String, required: true }, // Registration number - mandatory
   studentName: { type: String, required: true },
-  studentEmail: { type: String },
-  studentRollNo: { type: String },
   companyName: { type: String, required: true },
   companyAddress: { type: String },
-  position: { type: String, required: true },
+  mode: { type: String, enum: ['online', 'offline', 'hybrid'], required: true }, // Mode of internship
   startDate: { type: Date, required: true },
   endDate: { type: Date, required: true },
-  duration: { type: Number }, // in weeks
-  stipend: { type: Number },
+  duration: { type: Number }, // Calculated duration
+  durationUnit: { type: String, enum: ['days', 'weeks'] }, // Duration unit
+  stipend: { type: Number }, // Optional stipend amount
   description: { type: String },
   skillsGained: [{ type: String }],
   projectTitle: { type: String },
-  supervisorName: { type: String }, // Company supervisor
   status: { 
     type: String, 
-    enum: ['ongoing', 'completed', 'terminated'], 
-    default: 'ongoing' 
+    enum: ['pending', 'approved', 'rejected', 'ongoing', 'completed'], 
+    default: 'pending' 
   },
-  certificate: { type: String }, // Path to internship certificate
-  report: { type: String }, // Path to internship report
-  feedback: { type: String },
+  feedback: { type: String }, // Feedback by faculty
+  feedbackRating: { type: Number, min: 1, max: 5 }, // 5-star rating
+  certificate: { type: String, required: true }, // Path to internship certificate - mandatory
+  report: { type: String, required: true }, // Path to internship report - mandatory
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

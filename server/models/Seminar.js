@@ -7,8 +7,9 @@ const seminarSchema = new mongoose.Schema({
   date: { type: Date, required: true },
   venue: { type: String, required: true },
   description: { type: String },
-  attendees: { type: Number, default: 0 },
-  certificate: { type: String }, // Certificate file path
+  attendees: { type: Number, default: 0, min: 0 },
+  certificate: { type: String, required: true }, // Certificate file path - now mandatory
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

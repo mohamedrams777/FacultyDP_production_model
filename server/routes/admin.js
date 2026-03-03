@@ -151,6 +151,37 @@ router.get('/seminars', checkAdmin, async (req, res) => {
   }
 });
 
+router.put('/seminars/:id/status', checkAdmin, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['pending', 'approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+    
+    const record = await Seminar.findByIdAndUpdate(
+      req.params.id,
+      { status, updatedAt: Date.now() },
+      { new: true }
+    ).populate('facultyId', 'name email');
+    
+    if (!record) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+
+    // Create notification
+    await Notification.create({
+      recipientId: record.facultyId._id,
+      sender: 'Admin',
+      message: `Your seminar "${record.title}" has been ${status}`,
+      type: status === 'approved' ? 'success' : 'info',
+    });
+
+    res.json(record);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ========== ABL Management ==========
 router.get('/abl', checkAdmin, async (req, res) => {
   try {
@@ -158,6 +189,37 @@ router.get('/abl', checkAdmin, async (req, res) => {
       .populate('facultyId', 'name email department')
       .sort({ createdAt: -1 });
     res.json(records);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.put('/abl/:id/status', checkAdmin, async (req, res) => {
+  try {
+    const { status } = req.body;
+    
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+    
+    const record = await ABL.findByIdAndUpdate(
+      req.params.id,
+      { status, updatedAt: Date.now() },
+      { new: true }
+    ).populate('facultyId', 'name email');
+    
+    if (!record) {
+      return res.status(404).json({ error: 'ABL record not found' });
+    }
+    
+    // Create notification for faculty
+    await Notification.create({
+      recipientId: record.facultyId._id,
+      message: `Your ABL report for ${record.subjectName} has been ${status}`,
+      type: status === 'approved' ? 'success' : 'warning',
+    });
+    
+    res.json(record);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -182,6 +244,37 @@ router.get('/adjunct', checkAdmin, async (req, res) => {
       .populate('facultyId', 'name email department')
       .sort({ createdAt: -1 });
     res.json(records);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.put('/adjunct/:id/status', checkAdmin, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['pending', 'approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+    
+    const record = await AdjunctFaculty.findByIdAndUpdate(
+      req.params.id,
+      { status, updatedAt: Date.now() },
+      { new: true }
+    ).populate('facultyId', 'name email');
+    
+    if (!record) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+
+    // Create notification
+    await Notification.create({
+      recipientId: record.facultyId._id,
+      sender: 'Admin',
+      message: `Your Adjunct Faculty record "${record.facultyName}" has been ${status}`,
+      type: status === 'approved' ? 'success' : 'info',
+    });
+
+    res.json(record);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -259,6 +352,20 @@ router.post('/notifications', checkAdmin, async (req, res) => {
     });
     await notification.save();
     res.status(201).json(notification);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.delete('/notifications/:id', checkAdmin, async (req, res) => {
+  try {
+    const notification = await Notification.findByIdAndDelete(req.params.id);
+    
+    if (!notification) {
+      return res.status(404).json({ error: 'Notification not found' });
+    }
+    
+    res.json({ message: 'Notification deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -425,6 +532,39 @@ router.get('/internships', checkAdmin, async (req, res) => {
       .populate('facultyId', 'name email department')
       .sort({ startDate: -1, createdAt: -1 });
     res.json(records);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.put('/internships/:id/status', checkAdmin, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['pending', 'approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+    
+    const record = await Internship.findByIdAndUpdate(
+      req.params.id,
+      { status, updatedAt: Date.now() },
+      { new: true }
+    ).populate('facultyId', 'name email');
+    
+    if (!record) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+    
+    // Create notification for faculty
+    await Notification.create({
+      userId: record.facultyId._id,
+      type: 'internship',
+      title: `Internship ${status}`,
+      message: `Your internship record for ${record.studentName} has been ${status}`,
+      relatedId: record._id,
+      relatedModel: 'Internship'
+    });
+    
+    res.json(record);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

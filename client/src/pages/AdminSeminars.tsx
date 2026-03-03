@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileSpreadsheet, FileText, Search } from 'lucide-react';
+import { FileSpreadsheet, FileText, Search, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { RecordDetailsModal } from '@/components/RecordDetailsModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { adminAPI } from '@/lib/api';
+import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -37,8 +38,46 @@ const AdminSeminars = () => {
   const filteredRecords = records.filter((record: any) =>
     record.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     record.topic?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    record.venue?.toLowerCase().includes(searchQuery.toLowerCase())
+    record.venue?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    record.facultyId?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const updateStatus = async (id: string, status: 'approved' | 'rejected') => {
+    try {
+      await adminAPI.updateSeminarStatus(id, status);
+      toast.success(`Seminar ${status} successfully`);
+      await loadRecords();
+    } catch (error) {
+      console.error(`Failed to ${status} seminar:`, error);
+      toast.error(`Failed to ${status} seminar`);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return (
+          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Approved
+          </Badge>
+        );
+      case 'rejected':
+        return (
+          <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+            <XCircle className="h-3 w-3 mr-1" />
+            Rejected
+          </Badge>
+        );
+      default:
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+            <Clock className="h-3 w-3 mr-1" />
+            Pending
+          </Badge>
+        );
+    }
+  };
 
   const downloadExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(
@@ -50,6 +89,8 @@ const AdminSeminars = () => {
         'Date': record.date ? new Date(record.date).toLocaleDateString() : 'N/A',
         'Venue': record.venue,
         'Attendees': record.attendees || 0,
+        'Certificate': record.certificate ? 'Available' : 'Not Available',
+        'Status': record.status || 'pending',
       }))
     );
     const workbook = XLSX.utils.book_new();
@@ -68,7 +109,7 @@ const AdminSeminars = () => {
 
     autoTable(doc, {
       startY: 35,
-      head: [['Faculty', 'Title', 'Topic', 'Date', 'Venue', 'Attendees']],
+      head: [['Faculty', 'Title', 'Topic', 'Date', 'Venue', 'Attendees', 'Status']],
       body: records.map((record: any) => [
         record.facultyId?.name || 'N/A',
         record.title,
@@ -76,6 +117,7 @@ const AdminSeminars = () => {
         record.date ? new Date(record.date).toLocaleDateString() : 'N/A',
         record.venue,
         (record.attendees || 0).toString(),
+        record.status || 'pending',
       ]),
       theme: 'grid',
       headStyles: { fillColor: [59, 130, 246] },
@@ -115,7 +157,7 @@ const AdminSeminars = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by title, topic, or venue..."
+                placeholder="Search by faculty name, title, topic, or venue..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -133,6 +175,8 @@ const AdminSeminars = () => {
                   <TableHead>Date</TableHead>
                   <TableHead>Venue</TableHead>
                   <TableHead>Attendees</TableHead>
+                  <TableHead>Certificate</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -167,7 +211,42 @@ const AdminSeminars = () => {
                         <Badge variant="outline">{record.attendees || 0}</Badge>
                       </TableCell>
                       <TableCell>
+                        {record.certificate ? (
+                          <div className="flex items-center gap-1">
+                            <FileText className="h-4 w-4" />
+                            <span className="text-sm truncate max-w-20">Available</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">Not Available</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(record.status)}
+                      </TableCell>
+                      <TableCell>
                         <div className="flex gap-2">
+                          {record.status !== 'approved' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-green-600 hover:text-green-700"
+                              onClick={() => updateStatus(record._id || record.id, 'approved')}
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Approve
+                            </Button>
+                          )}
+                          {record.status !== 'rejected' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => updateStatus(record._id || record.id, 'rejected')}
+                            >
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Reject
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"

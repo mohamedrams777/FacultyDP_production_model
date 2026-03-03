@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Briefcase, Eye, Calendar, DollarSign, Users } from 'lucide-react';
+import { Plus, Edit, Trash2, Briefcase, Eye, Calendar, DollarSign, Users, Star } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Slider } from '@/components/ui/slider';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { facultyAPI } from '@/lib/api';
@@ -19,6 +20,13 @@ const FacultyInternships = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [calculatedDuration, setCalculatedDuration] = useState('');
+  const [certificateFile, setCertificateFile] = useState<File | null>(null);
+  const [reportFile, setReportFile] = useState<File | null>(null);
+  const [stipendAmount, setStipendAmount] = useState([0]);
+  const [selectedRating, setSelectedRating] = useState(0);
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
   useEffect(() => {
@@ -33,23 +41,23 @@ const FacultyInternships = () => {
         id: item._id || item.id,
         facultyId: item.facultyId?._id || item.facultyId || user?.id || '',
         studentName: item.studentName,
-        studentEmail: item.studentEmail,
-        studentRollNo: item.studentRollNo,
+        regNo: item.regNo,
         companyName: item.companyName,
         companyAddress: item.companyAddress,
-        position: item.position,
+        mode: item.mode,
         startDate: item.startDate ? new Date(item.startDate).toISOString().split('T')[0] : '',
         endDate: item.endDate ? new Date(item.endDate).toISOString().split('T')[0] : '',
         duration: item.duration,
+        durationUnit: item.durationUnit,
         stipend: item.stipend,
         description: item.description,
         skillsGained: item.skillsGained || [],
         projectTitle: item.projectTitle,
-        supervisorName: item.supervisorName,
         status: item.status || 'ongoing',
+        feedback: item.feedback,
+        feedbackRating: item.feedbackRating,
         certificate: item.certificate,
         report: item.report,
-        feedback: item.feedback,
       })));
     } catch (error) {
       console.error('Failed to load internships:', error);
@@ -59,29 +67,163 @@ const FacultyInternships = () => {
     }
   };
 
+  const calculateDuration = (start: string, end: string) => {
+    if (!start || !end) return '';
+    
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays > 6) {
+      const weeks = Math.round(diffDays / 7);
+      return `${weeks} week${weeks > 1 ? 's' : ''}`;
+    } else {
+      return `${diffDays} day${diffDays > 1 ? 's' : ''}`;
+    }
+  };
+
+  const handleStartDateChange = (date: string) => {
+    setStartDate(date);
+    if (endDate) {
+      setCalculatedDuration(calculateDuration(date, endDate));
+    }
+  };
+
+  const handleEndDateChange = (date: string) => {
+    setEndDate(date);
+    if (startDate) {
+      setCalculatedDuration(calculateDuration(startDate, date));
+    }
+  };
+
+  const validateNaturalNumber = (value: string): boolean => {
+    const num = parseFloat(value);
+    return !isNaN(num) && num >= 0 && Number.isInteger(num);
+  };
+
+  const validateFileFormat = (file: File, allowedTypes: string[]): boolean => {
+    return allowedTypes.includes(file.type);
+  };
+
+  const handleCertificateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!validateFileFormat(file, allowedTypes)) {
+        toast({ title: 'Invalid file format', description: 'Please upload PDF, JPG, PNG, or DOCX files only', variant: 'destructive' });
+        e.target.value = '';
+        return;
+      }
+      setCertificateFile(file);
+    }
+  };
+
+  const handleReportChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!validateFileFormat(file, allowedTypes)) {
+        toast({ title: 'Invalid file format', description: 'Please upload PDF or DOCX files only', variant: 'destructive' });
+        e.target.value = '';
+        return;
+      }
+      setReportFile(file);
+    }
+  };
+
+  const StarRating = ({ rating, onRatingChange }: { rating: number; onRatingChange: (rating: number) => void }) => {
+    const labels = ['', 'Poor', 'Need to improve', 'Average', 'Very good', 'Excellent'];
+    
+    return (
+      <div className="space-y-2">
+        <div className="flex gap-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={() => onRatingChange(star)}
+              className="p-1 hover:scale-110 transition-transform"
+            >
+              <Star
+                className={`h-6 w-6 cursor-pointer transition-colors ${
+                  star <= rating
+                    ? 'fill-yellow-400 text-yellow-400'
+                    : 'text-gray-300 hover:text-yellow-200'
+                }`}
+              />
+            </button>
+          ))}
+        </div>
+        {rating > 0 && (
+          <p className="text-sm text-muted-foreground">{labels[rating]}</p>
+        )}
+      </div>
+    );
+  };
+
+  const getRatingLabel = (rating: number): string => {
+    const labels = ['', 'Poor', 'Need to improve', 'Average', 'Very good', 'Excellent'];
+    return labels[rating] || '';
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Check if user is authenticated
+    if (!user?.id) {
+      toast({ title: 'Authentication required', description: 'Please log in to add internship records', variant: 'destructive' });
+      return;
+    }
+    
     const formData = new FormData(e.currentTarget);
-    const certificateFile = (formData.get('certificate') as File);
-    const reportFile = (formData.get('report') as File);
+    const certificateFile = formData.get('certificate') as File;
+    const reportFile = formData.get('report') as File;
+    
+    // Validate mandatory fields
+    if (!certificateFile && !editingRecord) {
+      toast({ title: 'Certificate required', description: 'Please upload a certificate file', variant: 'destructive' });
+      return;
+    }
+    
+    if (!reportFile && !editingRecord) {
+      toast({ title: 'Report required', description: 'Please upload an internship report', variant: 'destructive' });
+      return;
+    }
+    
+    // Validate file formats
+    if (certificateFile && certificateFile.size > 0) {
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!validateFileFormat(certificateFile, allowedTypes)) {
+        toast({ title: 'Invalid certificate format', description: 'Please upload PDF, JPG, PNG, or DOCX files only', variant: 'destructive' });
+        return;
+      }
+    }
+    
+    if (reportFile && reportFile.size > 0) {
+      const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!validateFileFormat(reportFile, allowedTypes)) {
+        toast({ title: 'Invalid report format', description: 'Please upload PDF or DOCX files only', variant: 'destructive' });
+        return;
+      }
+    }
     
     const internshipData: any = {
+      regNo: formData.get('regNo') as string,
       studentName: formData.get('studentName') as string,
-      studentEmail: formData.get('studentEmail') as string,
-      studentRollNo: formData.get('studentRollNo') as string,
       companyName: formData.get('companyName') as string,
       companyAddress: formData.get('companyAddress') as string,
-      position: formData.get('position') as string,
+      mode: formData.get('mode') as string || 'offline',
       startDate: formData.get('startDate') as string,
       endDate: formData.get('endDate') as string,
-      duration: parseInt(formData.get('duration') as string) || undefined,
-      stipend: formData.get('stipend') ? parseFloat(formData.get('stipend') as string) : undefined,
+      duration: parseInt(calculatedDuration) || 0,
+      durationUnit: calculatedDuration.includes('week') ? 'weeks' : 'days',
+      stipend: stipendAmount[0] || 0,
       description: formData.get('description') as string,
       skillsGained: (formData.get('skillsGained') as string)?.split(',').map(s => s.trim()).filter(Boolean),
       projectTitle: formData.get('projectTitle') as string,
-      supervisorName: formData.get('supervisorName') as string,
-      status: formData.get('status') as string,
-      feedback: formData.get('feedback') as string,
+      status: formData.get('status') as string || 'pending',
+      feedbackRating: selectedRating || undefined,
     };
 
     if (certificateFile && certificateFile.size > 0) {
@@ -102,6 +244,13 @@ const FacultyInternships = () => {
       await loadRecords();
       setIsDialogOpen(false);
       setEditingRecord(null);
+      setStartDate('');
+      setEndDate('');
+      setCalculatedDuration('');
+      setCertificateFile(null);
+      setReportFile(null);
+      setStipendAmount([0]);
+      setSelectedRating(0);
     } catch (error: any) {
       console.error('Failed to save internship:', error);
       toast({ title: error.message || 'Failed to save internship', variant: 'destructive' });
@@ -123,11 +272,13 @@ const FacultyInternships = () => {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, any> = {
+      pending: { variant: 'secondary', label: 'Pending' },
+      approved: { variant: 'default', label: 'Approved' },
+      rejected: { variant: 'destructive', label: 'Rejected' },
       ongoing: { variant: 'default', label: 'Ongoing' },
       completed: { variant: 'default', label: 'Completed' },
-      terminated: { variant: 'destructive', label: 'Terminated' },
     };
-    const config = variants[status] || variants.ongoing;
+    const config = variants[status] || variants.pending;
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
@@ -151,7 +302,7 @@ const FacultyInternships = () => {
               <DialogDescription>Record details of student internships you supervise</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
                   <Label htmlFor="studentName">Student Name *</Label>
                   <Input
@@ -159,26 +310,19 @@ const FacultyInternships = () => {
                     name="studentName"
                     defaultValue={editingRecord?.studentName}
                     required
+                    placeholder="Enter student name"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="studentRollNo">Roll Number</Label>
+                  <Label htmlFor="regNo">Registration Number *</Label>
                   <Input
-                    id="studentRollNo"
-                    name="studentRollNo"
-                    defaultValue={editingRecord?.studentRollNo}
+                    id="regNo"
+                    name="regNo"
+                    defaultValue={editingRecord?.regNo}
+                    required
+                    placeholder="Enter registration number"
                   />
                 </div>
-              </div>
-
-              <div>
-                <Label htmlFor="studentEmail">Student Email</Label>
-                <Input
-                  id="studentEmail"
-                  name="studentEmail"
-                  type="email"
-                  defaultValue={editingRecord?.studentEmail}
-                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -189,16 +333,21 @@ const FacultyInternships = () => {
                     name="companyName"
                     defaultValue={editingRecord?.companyName}
                     required
+                    placeholder="Enter company name"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="position">Position *</Label>
-                  <Input
-                    id="position"
-                    name="position"
-                    defaultValue={editingRecord?.position}
-                    required
-                  />
+                  <Label htmlFor="mode">Mode of Intern *</Label>
+                  <Select name="mode" defaultValue={editingRecord?.mode || 'offline'} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select mode" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="online">Online</SelectItem>
+                      <SelectItem value="offline">Offline</SelectItem>
+                      <SelectItem value="hybrid">Hybrid</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -209,6 +358,7 @@ const FacultyInternships = () => {
                   name="companyAddress"
                   defaultValue={editingRecord?.companyAddress}
                   rows={2}
+                  placeholder="Enter company address"
                 />
               </div>
 
@@ -219,7 +369,8 @@ const FacultyInternships = () => {
                     id="startDate"
                     name="startDate"
                     type="date"
-                    defaultValue={editingRecord?.startDate}
+                    value={startDate || editingRecord?.startDate || ''}
+                    onChange={(e) => handleStartDateChange(e.target.value)}
                     required
                   />
                 </div>
@@ -229,42 +380,54 @@ const FacultyInternships = () => {
                     id="endDate"
                     name="endDate"
                     type="date"
-                    defaultValue={editingRecord?.endDate}
+                    value={endDate || editingRecord?.endDate || ''}
+                    onChange={(e) => handleEndDateChange(e.target.value)}
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="duration">Duration (weeks)</Label>
+                  <Label htmlFor="duration">Duration</Label>
                   <Input
                     id="duration"
                     name="duration"
-                    type="number"
-                    defaultValue={editingRecord?.duration}
+                    type="text"
+                    value={calculatedDuration || editingRecord?.duration || ''}
+                    readOnly
+                    placeholder="Auto-calculated"
+                    className="bg-muted"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="stipend">Stipend Amount</Label>
-                  <Input
-                    id="stipend"
-                    name="stipend"
-                    type="number"
-                    step="0.01"
-                    defaultValue={editingRecord?.stipend}
-                  />
+                  <Label htmlFor="stipend">Stipend Amount (₹{stipendAmount[0].toLocaleString()})</Label>
+                  <div className="space-y-2">
+                    <Slider
+                      value={stipendAmount}
+                      onValueChange={setStipendAmount}
+                      max={100000}
+                      min={0}
+                      step={1000}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>₹0</span>
+                      <span>₹50,000</span>
+                      <span>₹100,000</span>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="status">Status *</Label>
-                  <Select name="status" defaultValue={editingRecord?.status || 'ongoing'} required>
+                  <Select name="status" defaultValue={editingRecord?.status || 'pending'} required>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="ongoing">Ongoing</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="terminated">Terminated</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -276,15 +439,7 @@ const FacultyInternships = () => {
                   id="projectTitle"
                   name="projectTitle"
                   defaultValue={editingRecord?.projectTitle}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="supervisorName">Company Supervisor Name</Label>
-                <Input
-                  id="supervisorName"
-                  name="supervisorName"
-                  defaultValue={editingRecord?.supervisorName}
+                  placeholder="Enter project title"
                 />
               </div>
 
@@ -305,29 +460,33 @@ const FacultyInternships = () => {
                   name="description"
                   defaultValue={editingRecord?.description}
                   rows={3}
+                  placeholder="Describe the internship..."
                 />
               </div>
 
               <div>
-                <Label htmlFor="feedback">Feedback</Label>
-                <Textarea
-                  id="feedback"
-                  name="feedback"
-                  defaultValue={editingRecord?.feedback}
-                  rows={2}
+                <Label htmlFor="feedbackRating">Feedback Rating (5 Stars)</Label>
+                <StarRating 
+                  rating={selectedRating} 
+                  onRatingChange={setSelectedRating} 
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="certificate">Certificate (PDF, JPG, PNG - Max 10MB)</Label>
+                  <Label htmlFor="certificate">Certificate * (PDF, JPG, PNG, DOCX - Max 10MB)</Label>
                   <Input
                     id="certificate"
                     name="certificate"
                     type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept=".pdf,.jpg,.jpeg,.png,.docx"
                     className="cursor-pointer"
+                    onChange={handleCertificateChange}
+                    required={!editingRecord}
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Certificate is mandatory
+                  </p>
                   {editingRecord?.certificate && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Current: {editingRecord.certificate.split('/').pop()}
@@ -335,14 +494,19 @@ const FacultyInternships = () => {
                   )}
                 </div>
                 <div>
-                  <Label htmlFor="report">Internship Report (PDF - Max 10MB)</Label>
+                  <Label htmlFor="report">Internship Report * (PDF, DOCX - Max 10MB)</Label>
                   <Input
                     id="report"
                     name="report"
                     type="file"
-                    accept=".pdf"
+                    accept=".pdf,.docx"
                     className="cursor-pointer"
+                    onChange={handleReportChange}
+                    required={!editingRecord}
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Report is mandatory
+                  </p>
                   {editingRecord?.report && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Current: {editingRecord.report.split('/').pop()}
@@ -375,7 +539,7 @@ const FacultyInternships = () => {
                       {internship.studentName}
                     </CardTitle>
                     <CardDescription>
-                      {internship.position} at {internship.companyName}
+                      {internship.regNo} • {internship.companyName} • {internship.mode}
                     </CardDescription>
                   </div>
                   {getStatusBadge(internship.status)}
@@ -393,7 +557,7 @@ const FacultyInternships = () => {
                     </div>
                     <div>
                       <span className="text-muted-foreground">Duration: </span>
-                      <span className="font-medium">{internship.duration || 'N/A'} weeks</span>
+                      <span className="font-medium">{internship.duration || 'N/A'} {internship.durationUnit || 'weeks'}</span>
                     </div>
                   </div>
 
@@ -401,6 +565,32 @@ const FacultyInternships = () => {
                     <div className="text-sm">
                       <span className="text-muted-foreground">Project: </span>
                       <span className="font-medium">{internship.projectTitle}</span>
+                    </div>
+                  )}
+
+                  {internship.stipend && (
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Stipend: </span>
+                      <span className="font-medium">₹{internship.stipend.toLocaleString()}</span>
+                    </div>
+                  )}
+
+                  {internship.feedbackRating && (
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Rating: </span>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-4 w-4 ${
+                              star <= internship.feedbackRating
+                                ? 'fill-yellow-400 text-yellow-400'
+                                : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                        <span className="ml-1 font-medium">({getRatingLabel(internship.feedbackRating)})</span>
+                      </div>
                     </div>
                   )}
 
@@ -412,13 +602,6 @@ const FacultyInternships = () => {
                           <Badge key={idx} variant="outline">{skill}</Badge>
                         ))}
                       </div>
-                    </div>
-                  )}
-
-                  {internship.stipend && (
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Stipend: </span>
-                      <span className="font-medium">₹{internship.stipend.toLocaleString()}</span>
                     </div>
                   )}
 
@@ -457,6 +640,11 @@ const FacultyInternships = () => {
                       variant="outline"
                       onClick={() => {
                         setEditingRecord(internship);
+                        setStartDate(internship.startDate);
+                        setEndDate(internship.endDate);
+                        setCalculatedDuration(`${internship.duration} ${internship.durationUnit}`);
+                        setStipendAmount([internship.stipend || 0]);
+                        setSelectedRating(internship.feedbackRating || 0);
                         setIsDialogOpen(true);
                       }}
                     >

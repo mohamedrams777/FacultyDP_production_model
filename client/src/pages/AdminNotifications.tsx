@@ -68,9 +68,15 @@ const AdminNotifications = () => {
     toast.success('Marked as read');
   };
 
-  const handleDelete = (id: string) => {
-    setNotificationList(notificationList.filter(n => n.id !== id));
-    toast.success('Notification removed');
+  const handleDelete = async (id: string) => {
+    try {
+      await adminAPI.deleteNotification(id);
+      setNotificationList(notificationList.filter(n => n.id !== id));
+      toast.success('Notification deleted successfully');
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+      toast.error('Failed to delete notification');
+    }
   };
 
   const handleMarkAllAsRead = () => {

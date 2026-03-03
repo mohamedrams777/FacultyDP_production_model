@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Award, Eye, CheckCircle, XCircle, Clock, ExternalLink, FileText } from 'lucide-react';
+import { Plus, Edit, Trash2, Award, Eye, CheckCircle, XCircle, Clock, FileText } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,10 @@ const FacultyAchievements = () => {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [category, setCategory] = useState('');
+  const [patentType, setPatentType] = useState('');
+  const [certificateFile, setCertificateFile] = useState<File | null>(null);
+  const [supportingDocFile, setSupportingDocFile] = useState<File | null>(null);
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
   useEffect(() => {
@@ -39,7 +43,6 @@ const FacultyAchievements = () => {
         date: item.date ? new Date(item.date).toISOString().split('T')[0] : '',
         certificate: item.certificate,
         supportingDocument: item.supportingDocument,
-        link: item.link,
         status: item.status || 'pending',
       })));
     } catch (error) {
@@ -50,20 +53,90 @@ const FacultyAchievements = () => {
     }
   };
 
+  const validateFileFormat = (file: File): boolean => {
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    return allowedTypes.includes(file.type);
+  };
+
+  const handleCertificateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!validateFileFormat(file)) {
+        toast({ title: 'Invalid file format', description: 'Please upload PDF, JPG, or PNG files only', variant: 'destructive' });
+        e.target.value = '';
+        return;
+      }
+      setCertificateFile(file);
+    }
+  };
+
+  const handleSupportingDocChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!validateFileFormat(file)) {
+        toast({ title: 'Invalid file format', description: 'Please upload PDF, JPG, or PNG files only', variant: 'destructive' });
+        e.target.value = '';
+        return;
+      }
+      setSupportingDocFile(file);
+    }
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setCategory(value);
+    if (value !== 'patent') {
+      setPatentType('');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Check if user is authenticated
+    if (!user?.id) {
+      toast({ title: 'Authentication required', description: 'Please log in to add achievements', variant: 'destructive' });
+      return;
+    }
+    
     const formData = new FormData(e.currentTarget);
-    const certificateFile = (formData.get('certificate') as File);
-    const supportingDocFile = (formData.get('supportingDocument') as File);
+    const certificateFile = formData.get('certificate') as File;
+    const supportingDocFile = formData.get('supportingDocument') as File;
+    
+    // Validate certificate is mandatory
+    if (!certificateFile && !editingRecord) {
+      toast({ title: 'Certificate required', description: 'Please upload a certificate file', variant: 'destructive' });
+      return;
+    }
+    
+    // Validate patent type if patent is selected
+    if (category === 'patent' && !patentType.trim()) {
+      toast({ title: 'Patent type required', description: 'Please select a patent type', variant: 'destructive' });
+      return;
+    }
+    
+    // Validate file formats
+    if (certificateFile && certificateFile.size > 0 && !validateFileFormat(certificateFile)) {
+      toast({ title: 'Invalid certificate format', description: 'Please upload PDF, JPG, or PNG files only', variant: 'destructive' });
+      return;
+    }
+    
+    if (supportingDocFile && supportingDocFile.size > 0 && !validateFileFormat(supportingDocFile)) {
+      toast({ title: 'Invalid supporting document format', description: 'Please upload PDF, JPG, or PNG files only', variant: 'destructive' });
+      return;
+    }
     
     const achievementData: any = {
       title: formData.get('title') as string,
       description: formData.get('description') as string,
-      category: formData.get('category') as string,
+      category: category,
       issuer: formData.get('issuer') as string,
       date: formData.get('date') as string,
-      link: formData.get('link') as string || undefined,
     };
+    
+    // Add patent type if applicable
+    if (category === 'patent') {
+      achievementData.patentType = patentType;
+    }
 
     if (certificateFile && certificateFile.size > 0) {
       achievementData.certificate = certificateFile;
@@ -83,6 +156,10 @@ const FacultyAchievements = () => {
       await loadRecords();
       setIsDialogOpen(false);
       setEditingRecord(null);
+      setCategory('');
+      setPatentType('');
+      setCertificateFile(null);
+      setSupportingDocFile(null);
     } catch (error: any) {
       console.error('Failed to save achievement:', error);
       toast({ title: error.message || 'Failed to save achievement', variant: 'destructive' });
@@ -126,6 +203,7 @@ const FacultyAchievements = () => {
       patent: 'bg-green-100 text-green-800',
       recognition: 'bg-pink-100 text-pink-800',
       certification: 'bg-indigo-100 text-indigo-800',
+      conference: 'bg-orange-100 text-orange-800',
       other: 'bg-gray-100 text-gray-800',
     };
     return colors[category] || colors.other;
@@ -164,9 +242,14 @@ const FacultyAchievements = () => {
 
               <div>
                 <Label htmlFor="category">Category *</Label>
-                <Select name="category" defaultValue={editingRecord?.category || 'award'} required>
+                <Select 
+                  name="category" 
+                  value={editingRecord?.category || category} 
+                  onValueChange={handleCategoryChange}
+                  required
+                >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="award">Award</SelectItem>
@@ -175,10 +258,33 @@ const FacultyAchievements = () => {
                     <SelectItem value="patent">Patent</SelectItem>
                     <SelectItem value="recognition">Recognition</SelectItem>
                     <SelectItem value="certification">Certification</SelectItem>
+                    <SelectItem value="conference">Conference</SelectItem>
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              
+              {category === 'patent' && (
+                <div>
+                  <Label htmlFor="patentType">Patent Type *</Label>
+                  <Select 
+                    name="patentType" 
+                    value={patentType} 
+                    onValueChange={setPatentType}
+                    required={category === 'patent'}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select patent type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="design">Design Patent</SelectItem>
+                      <SelectItem value="utility">Utility Patent</SelectItem>
+                      <SelectItem value="provisional">Provisional Patent</SelectItem>
+                      <SelectItem value="addition">Patent of Addition</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -214,27 +320,21 @@ const FacultyAchievements = () => {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="link">Link (Optional)</Label>
-                <Input
-                  id="link"
-                  name="link"
-                  type="url"
-                  defaultValue={editingRecord?.link}
-                  placeholder="https://..."
-                />
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="certificate">Certificate (PDF, JPG, PNG - Max 10MB)</Label>
+                  <Label htmlFor="certificate">Certificate * (PDF, JPG, PNG - Max 10MB)</Label>
                   <Input
                     id="certificate"
                     name="certificate"
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
                     className="cursor-pointer"
+                    onChange={handleCertificateChange}
+                    required={!editingRecord}
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Certificate is mandatory
+                  </p>
                   {editingRecord?.certificate && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Current: {editingRecord.certificate.split('/').pop()}
@@ -249,7 +349,11 @@ const FacultyAchievements = () => {
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
                     className="cursor-pointer"
+                    onChange={handleSupportingDocChange}
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Optional supporting document
+                  </p>
                   {editingRecord?.supportingDocument && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Current: {editingRecord.supportingDocument.split('/').pop()}
@@ -323,17 +427,6 @@ const FacultyAchievements = () => {
                       >
                         <FileText className="h-4 w-4" />
                         Document
-                      </a>
-                    )}
-                    {achievement.link && (
-                      <a
-                        href={achievement.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-sm text-primary hover:underline"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        Link
                       </a>
                     )}
                   </div>

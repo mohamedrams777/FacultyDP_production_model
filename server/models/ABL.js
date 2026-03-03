@@ -6,6 +6,7 @@ const ablSchema = new mongoose.Schema({
   courseCode: { type: String, required: true },
   industryConnect: { type: String, required: true },
   proofDoc: { type: String, required: true }, // Made mandatory
+  certificate: { type: String }, // Certificate upload field
   fromDate: { type: Date, required: true },
   toDate: { type: Date, required: true },
   calculatedDuration: { type: String }, // Will store "X days" or "X weeks"

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { FileSpreadsheet, FileText, Search } from 'lucide-react';
+import { FileSpreadsheet, FileText, Search, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { RecordDetailsModal } from '@/components/RecordDetailsModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { adminAPI } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -14,6 +16,9 @@ const AdminABL = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedRecord, setSelectedRecord] = useState<any>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     loadRecords();
@@ -26,14 +31,59 @@ const AdminABL = () => {
       setRecords(data || []);
     } catch (error) {
       console.error('Failed to load ABL records:', error);
+      toast({ title: 'Failed to load records', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
   };
 
+  const updateStatus = async (id: string, status: 'approved' | 'rejected') => {
+    try {
+      await adminAPI.updateABLStatus(id, status);
+      toast({ 
+        title: `Record ${status} successfully`,
+        variant: status === 'approved' ? 'default' : 'destructive'
+      });
+      await loadRecords();
+    } catch (error) {
+      console.error(`Failed to ${status} record:`, error);
+      toast({ 
+        title: `Failed to ${status} record`, 
+        variant: 'destructive' 
+      });
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return (
+          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+            <CheckCircle className="h-3 w-3 mr-1" />
+            Approved
+          </Badge>
+        );
+      case 'rejected':
+        return (
+          <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+            <XCircle className="h-3 w-3 mr-1" />
+            Rejected
+          </Badge>
+        );
+      default:
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+            <Clock className="h-3 w-3 mr-1" />
+            Pending
+          </Badge>
+        );
+    }
+  };
+
   const filteredRecords = records.filter((record: any) =>
     record.subjectName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    record.courseCode?.toLowerCase().includes(searchQuery.toLowerCase())
+    record.courseCode?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    record.facultyId?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const downloadExcel = () => {
@@ -107,7 +157,7 @@ const AdminABL = () => {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by subject or course code..."
+                placeholder="Search by faculty name, subject, or course code..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -119,23 +169,25 @@ const AdminABL = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Faculty ID</TableHead>
+                  <TableHead>Faculty Name</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Course Code</TableHead>
                   <TableHead>Industry Connect</TableHead>
+                  <TableHead>Certificate</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">
                       Loading...
                     </TableCell>
                   </TableRow>
                 ) : filteredRecords.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground">
                       No records found
                     </TableCell>
                   </TableRow>
@@ -143,7 +195,7 @@ const AdminABL = () => {
                   filteredRecords.map((record: any) => (
                     <TableRow key={record._id || record.id}>
                       <TableCell className="font-medium">
-                        {record.facultyId?.name || (record.facultyId?._id || record.facultyId || 'N/A').toString().substring(0, 8)}
+                        {record.facultyId?.name || 'N/A'}
                       </TableCell>
                       <TableCell>{record.subjectName}</TableCell>
                       <TableCell>
@@ -151,9 +203,52 @@ const AdminABL = () => {
                       </TableCell>
                       <TableCell>{record.industryConnect}</TableCell>
                       <TableCell>
+                        {record.certificate ? (
+                          <div className="flex items-center gap-1">
+                            <FileText className="h-4 w-4" />
+                            <span className="text-sm truncate max-w-20">{record.certificate}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">N/A</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(record.status)}
+                      </TableCell>
+                      <TableCell>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline">View</Button>
-                          <Button size="sm" variant="outline">Edit</Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              setSelectedRecord(record);
+                              setIsViewModalOpen(true);
+                            }}
+                          >
+                            View
+                          </Button>
+                          {record.status !== 'approved' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-green-600 hover:text-green-700"
+                              onClick={() => updateStatus(record._id || record.id, 'approved')}
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Approve
+                            </Button>
+                          )}
+                          {record.status !== 'rejected' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="text-red-600 hover:text-red-700"
+                              onClick={() => updateStatus(record._id || record.id, 'rejected')}
+                            >
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Reject
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -164,6 +259,13 @@ const AdminABL = () => {
           </div>
         </CardContent>
       </Card>
+
+      <RecordDetailsModal
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+        record={selectedRecord}
+        type="abl"
+      />
     </div>
   );
 };
