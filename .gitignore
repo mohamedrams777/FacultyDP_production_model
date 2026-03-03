@@ -34,3 +34,4 @@ server/uploads/
 # Temporary files
 *.tmp
 .cache/
+.env
