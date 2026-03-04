@@ -1,5 +1,5 @@
 // API Base URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://facultydp-production-model.onrender.com/';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://facultydp-production-model.onrender.com';
 
 // Helper function to get auth headers
 const getAuthHeaders = (includeContentType: boolean = true): HeadersInit => {
